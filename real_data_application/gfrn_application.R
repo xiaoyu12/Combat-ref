@@ -3,9 +3,9 @@ sapply(c("sva", "dplyr", "DESeq2", "ggplot2", "reshape2", "gridExtra", "scales",
          "RUVSeq", "ggpubr", "BatchQC"), require, character.only=TRUE)
 
 ## Parameters (change paths when necessary)
-data_dir <- "~/workspace/ComBat-seq/real_data_application"  # path to the signature data (.rds)
-source("~/workspace/ComBat-seq/real_data_application/gfrn_helpers.R")  # path to gfrn_helpers.R
-source("~/workspace/ComBat-seq/ComBat_seq.R"); source("~/workspace/ComBat-seq/helper_seq.R")   
+data_dir <- "~/workspace/Combat-ref/real_data_application"  # path to the signature data (.rds)
+source("~/workspace/Combat-ref/real_data_application/gfrn_helpers.R")  # path to gfrn_helpers.R
+source("~/workspace/Combat-ref/ComBat_seq.R"); source("~/workspace/Combat-ref/helper_seq.R")   
 # path to the combat-seq scripts (or use the sva package on github, in which case comment out the above line)
 
 pathway_regex <- c("her2", "^egfr", "kraswt")  

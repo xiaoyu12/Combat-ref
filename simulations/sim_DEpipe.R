@@ -2,15 +2,13 @@ rm(list=ls())
 demo <- TRUE  # if testing code, set as TRUE; if running simulations, set as FALSE
 if(demo){  
   # local
-  setwd("~/workspace/ComBat-seq/simulations")  # path to store the simulation CSV results
-  script_dir <- "../" #"./ComBat-seq"  # path to combat-seq scripts
+  setwd("~/workspace/Combat-ref/simulations")  # path to store the simulation CSV results
+  script_dir <- "../"  # path to combat-ref scripts
   source(file.path(script_dir, "simulations/sim_DEpipe_helpers.R"))  # path to sim_DEpipe_helpers.R 
   #source(file.path("sim_DEpipe_helpers.R"))
 }else{  
   # running on server
-  setwd("/restricted/projectnb/combat/work/yuqingz/ComBat-seq/DE_large/")
-  script_dir <- ".."
-  source(file.path(script_dir, "sim_DEpipe_helpers.R"))
+  stop("Not implemented yet")
 }
 sapply(c("polyester", "Biostrings", "limma", "edgeR", "DESeq2", "sva", "RUVSeq", "MASS"), require, character.only=TRUE)
 source(file.path(script_dir, "ComBat_seq.R"))
@@ -24,9 +22,9 @@ command_args <- commandArgs(trailingOnly=TRUE)
 batch_fold <- as.numeric(command_args[1]) # mean batch effect: mean of batch 2 is how many times that of batch 1
 disp_fold_level <- as.numeric(command_args[2])  # dispersion batch effect: dispersion of batch 2 is how many times that of batch 1, 1-5
 N_total_sample <- as.numeric(command_args[3])  # total number of samples in the whole count matrix (all batches pooled)
-#batch_fold <- 1.5
-#disp_fold_level <- 2
-#N_total_sample <- 12
+# batch_fold <- 1.5
+# disp_fold_level <- 2
+# N_total_sample <- 12
 
 coverage <- 5 #as.numeric(command_args[4])  # sequencing coverage
 bio_fold <- 2.4  #as.numeric(command_args[2])  # biological signal

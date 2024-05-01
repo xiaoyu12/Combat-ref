@@ -2,9 +2,9 @@ rm(list=ls())
 sapply(c("sva", "dplyr", "edgeR", "DESeq2", "ggplot2", "reshape2", "gridExtra", "scales", 
          "RUVSeq", "ggpubr", "BatchQC"), require, character.only=TRUE)
 ## Parameters (change paths when necessary)
-data_dir <- "~/workspace/ComBat-seq/nasa_data"  # path to the signature data (.rds)
-source("~/workspace/ComBat-seq/real_data_application/gfrn_helpers.R")  # path to gfrn_helpers.R
-source("~/workspace/ComBat-seq/ComBat_seq.R"); source("~/workspace/ComBat-seq/helper_seq.R")   
+data_dir <- "~/workspace/Combat-ref/nasa_data"  # path to the signature data (.rds)
+source("~/workspace/Combat-ref/real_data_application/gfrn_helpers.R")  # path to gfrn_helpers.R
+source("~/workspace/Combat-ref/ComBat_seq.R"); source("~/workspace/Combat-ref/helper_seq.R")   
 
 load(file.path(data_dir, "nasa.RData"))
 
