@@ -2,8 +2,8 @@ rm(list=ls())
 demo <- TRUE  # if testing code, set as TRUE; if running simulations, set as FALSE
 if(demo){  
   # local
-  setwd("~/workspace/Combat-ref/simulations")  # path to store the simulation CSV results
-  script_dir <- "../"  # path to combat-ref scripts
+  #setwd("~/workspace/Combat-ref/simulations")  # path to store the simulation CSV results
+  script_dir <- getwd() #"../"  # path to combat-ref scripts
   source(file.path(script_dir, "simulations/sim_DEpipe_helpers.R"))  # path to sim_DEpipe_helpers.R 
   #source(file.path("sim_DEpipe_helpers.R"))
 }else{  

@@ -4,11 +4,13 @@ sapply(c("sva", "DESeq2", "ggplot2", "reshape2", "gridExtra", "scales", "dendext
        require, character.only=TRUE)
 
 ## Parameters (change paths when necessary)
-data_dir <- "~/workspace/Combat-ref/real_data_application"  # path to the signature data (.rds)
-source("~/workspace/Combat-ref/real_data_application/gfrn_helpers.R")  # path to gfrn_helpers.R
-source("~/workspace/Combat-ref/ComBat_seq.R"); source("~/workspace/Combat-ref/helper_seq.R")   
-source("~/workspace/Combat-ref/Combat_ref.R")
-output_dir <- "~/workspace/Combat-ref/real_data_application"
+script_dir <- getwd()
+data_dir <- paste0(script_dir, "/real_data_application") #~/workspace/Combat-ref/real_data_application"  # path to the signature data (.rds)
+source(file.path(script_dir, "/real_data_application/gfrn_helpers.R"))  # path to gfrn_helpers.R
+source(file.path(script_dir, "ComBat_seq.R")); 
+source(file.path(script_dir, "helper_seq.R")) 
+source(file.path(script_dir, "Combat_ref.R"))
+output_dir <- data_dir 
 
 pathway_regex <- c("her2", "^egfr", "kraswt")  #"^egfr" 
 set.seed(1)
