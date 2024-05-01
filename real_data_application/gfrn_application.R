@@ -5,7 +5,8 @@ sapply(c("sva", "dplyr", "DESeq2", "ggplot2", "reshape2", "gridExtra", "scales",
 ## Parameters (change paths when necessary)
 data_dir <- "~/workspace/Combat-ref/real_data_application"  # path to the signature data (.rds)
 source("~/workspace/Combat-ref/real_data_application/gfrn_helpers.R")  # path to gfrn_helpers.R
-source("~/workspace/Combat-ref/ComBat_seq.R"); source("~/workspace/Combat-ref/helper_seq.R")   
+source("~/workspace/Combat-ref/ComBat_seq.R"); source("~/workspace/Combat-ref/helper_seq.R") 
+source("~/workspace/Combat-ref/Combat_ref.R")
 # path to the combat-seq scripts (or use the sva package on github, in which case comment out the above line)
 
 pathway_regex <- c("her2", "^egfr", "kraswt")  
@@ -50,7 +51,7 @@ print(end_time - start_time)
 
 ## Use the new ComBa-ref to adjust data
 start_time <- Sys.time()
-combat_sub <- ComBat_seq_new(counts=cts_sub, batch=batch_sub, group=group_sub, genewise.disp=FALSE)
+combat_sub <- ComBat_ref(counts=cts_sub, batch=batch_sub, group=group_sub, genewise.disp=FALSE)
 end_time <- Sys.time()
 print(end_time - start_time)
 

@@ -12,6 +12,7 @@ if(demo){
 }
 sapply(c("polyester", "Biostrings", "limma", "edgeR", "DESeq2", "sva", "RUVSeq", "MASS"), require, character.only=TRUE)
 source(file.path(script_dir, "ComBat_seq.R"))
+source(file.path(script_dir, "Combat_ref.R"))
 source(file.path(script_dir, "helper_seq.R"))
 set.seed(123)
 
@@ -155,7 +156,7 @@ for(ii in seq_along(alpha_fdr_seq)){
     de_called7 <- edgeR_DEpipe(counts_mat=cts, batch=batch, group=group, covar=svseq$sv, include.batch=FALSE, alpha.unadj=alpha_unadj, alpha.fdr=alpha_fdr)  
     de_called7_deseq <- DESeq2_DEpipe(counts_mat=cts, batch=batch, group=group, covar=svseq$sv, include.batch=FALSE, alpha.unadj=alpha_unadj, alpha.fdr=alpha_fdr)
     # Compare with Combat_new adjust to the reference batch
-    adj_counts_ref_comDisp <- ComBat_seq_new(counts=cts, batch=batch, group=group, shrink=FALSE, genewise.disp=FALSE)
+    adj_counts_ref_comDisp <- ComBat_ref(counts=cts, batch=batch, group=group, shrink=FALSE, genewise.disp=FALSE)
     de_called8 <- edgeR_DEpipe(counts_mat=adj_counts_ref_comDisp, batch=batch, group=group, include.batch=FALSE, alpha.unadj=alpha_unadj, alpha.fdr=alpha_fdr)  
     de_called8_deseq <- DESeq2_DEpipe(counts_mat=adj_counts_ref_comDisp, batch=batch, group=group, include.batch=FALSE, alpha.unadj=alpha_unadj, alpha.fdr=alpha_fdr)
     

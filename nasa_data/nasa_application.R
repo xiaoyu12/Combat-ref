@@ -4,7 +4,8 @@ sapply(c("sva", "dplyr", "edgeR", "DESeq2", "ggplot2", "reshape2", "gridExtra", 
 ## Parameters (change paths when necessary)
 data_dir <- "~/workspace/Combat-ref/nasa_data"  # path to the signature data (.rds)
 source("~/workspace/Combat-ref/real_data_application/gfrn_helpers.R")  # path to gfrn_helpers.R
-source("~/workspace/Combat-ref/ComBat_seq.R"); source("~/workspace/Combat-ref/helper_seq.R")   
+source("~/workspace/Combat-ref/ComBat_seq.R"); source("~/workspace/Combat-ref/helper_seq.R") 
+source("~/workspace/Combat-ref/Combat_ref.R")
 
 load(file.path(data_dir, "nasa.RData"))
 
@@ -58,8 +59,8 @@ cts_combatseq <- ComBat_seq(counts=cts, batch=batch, group=group, shrink=FALSE)
 combatseq <- plot_Count_PCA(cts_combatseq, title="ComBat_seq")
 combatseq$plt
 
-# adjust the data using combat_seq_new
-cts_combatnew <- ComBat_seq_new(counts = cts, batch = batch, group = group, genewise.disp = FALSE)
+# adjust the data using combat_ref
+cts_combatnew <- ComBat_ref(counts = cts, batch = batch, group = group, genewise.disp = FALSE)
 combat_new <- plot_Count_PCA(cts_combatnew, title="New ComBat_ref", neg_y=-1)
 combat_new$plt
 
