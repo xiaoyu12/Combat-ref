@@ -5,12 +5,12 @@ We introduce ComBat-ref, a new method of batch effect correction that enhances t
 
 ![pca_variation_aggr](https://github.com/user-attachments/assets/96b2a30e-7ece-4186-bffc-005d9f7e700b)
 ## Run the tests
-Run the simulation test with the following command, where batch_FC = 2, disp_FC = 4, and a total of 12 samples (3 for each batch and biological condition). You can change these parameters to compare batch effect correction results by Combat-ref and other methods. 
+Run the simulation test with the following command, where batch_FC = 2, disp_FC = 4, and a total of 12 samples (3 replicates for each batch and biological condition). You can change these parameters to compare batch effect correction results by Combat-ref and other methods. In this test, the batch fold change (batch_FC) represents the mean batch effects, i.e., the ratio of the mean of batch 2 over that of batch 1; the dispersion batch effect (disp_FC) is the ratio of the dispersion of batch 2 over that of batch 1. The larger the batch_FC and disp_FC values, the more difficult it is to correct the batch effects. In the simulations, we assume the fold changes of biological signals to be 2.4. Assuming two biological conditions and two batches, 12 samples mean 3 replicates for each batch and biological condition.
 ```
 Rscript simulations/sim_DEpipe.R 2 4 12
 ```
 
-To run the test for GFRN data, use the following script.
+To run the test for GFRN data, you can just use the following script.
 ```
 Rscript real_data_application/gfrn_application.R
 ```
