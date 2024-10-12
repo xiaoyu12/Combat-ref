@@ -1,18 +1,13 @@
-rm(list=ls())
-demo <- TRUE  # if testing code, set as TRUE; if running simulations, set as FALSE
-if(demo){  
-  # local
-  #setwd("~/workspace/Combat-ref/simulations")  # path to store the simulation CSV results
-  script_dir <- getwd() #"../"  # path to combat-ref scripts
-  source(file.path(script_dir, "simulations/sim_DEpipe_helpers.R"))  # path to sim_DEpipe_helpers.R 
-  #source(file.path("sim_DEpipe_helpers.R"))
-}else{  
-  # running on server
-  stop("Not implemented yet")
-}
+rm(list=ls())  # clear up environment
+
+# local
+setwd("./simulations")  # path to store the simulation CSV results
+script_dir <- "../"  # path to combat-ref scripts
+source(file.path(script_dir, "simulations/sim_DEpipe_helpers.R"))  # path to sim_DEpipe_helpers.R 
+#source(file.path("sim_DEpipe_helpers.R"))
+
 sapply(c("polyester", "Biostrings", "limma", "edgeR", "DESeq2", "sva", "RUVSeq", "MASS"), require, character.only=TRUE)
 source(file.path(script_dir, "ComBat_seq.R"))
-source(file.path(script_dir, "Combat_ref.R"))
 source(file.path(script_dir, "helper_seq.R"))
 set.seed(123)
 
@@ -23,9 +18,6 @@ command_args <- commandArgs(trailingOnly=TRUE)
 batch_fold <- as.numeric(command_args[1]) # mean batch effect: mean of batch 2 is how many times that of batch 1
 disp_fold_level <- as.numeric(command_args[2])  # dispersion batch effect: dispersion of batch 2 is how many times that of batch 1, 1-5
 N_total_sample <- as.numeric(command_args[3])  # total number of samples in the whole count matrix (all batches pooled)
-# batch_fold <- 1.5
-# disp_fold_level <- 2
-# N_total_sample <- 12
 
 coverage <- 5 #as.numeric(command_args[4])  # sequencing coverage
 bio_fold <- 2.4  #as.numeric(command_args[2])  # biological signal
@@ -35,7 +27,7 @@ balanced <- FALSE  #as.logical(command_args[7]) # is the study design balanced?
 confounding_level <- 0.5  #as.numeric(command_args[3])  # level of confounding, 0-0.5
 sim_outliers <- FALSE #as.logical(command_args[1])  # simulate outlying count in the matrix?
 
-iterations <- 100  # number of simulations to run / 15
+iterations <- 1  # number of simulations to run (change to larger numbers to run multiple simulations)
 alpha_unadj <- 0.05  # alpha significance level for differential expression (DE)
 #alpha_fdr_seq <- seq(from=0, to=0.15, by=0.01)[-1]  # FDR cutoff for differential expression (DE)
 alpha_fdr_seq <- c(0.05, 0.10, 0.15)
@@ -156,7 +148,7 @@ for(ii in seq_along(alpha_fdr_seq)){
     de_called7 <- edgeR_DEpipe(counts_mat=cts, batch=batch, group=group, covar=svseq$sv, include.batch=FALSE, alpha.unadj=alpha_unadj, alpha.fdr=alpha_fdr)  
     de_called7_deseq <- DESeq2_DEpipe(counts_mat=cts, batch=batch, group=group, covar=svseq$sv, include.batch=FALSE, alpha.unadj=alpha_unadj, alpha.fdr=alpha_fdr)
     # Compare with Combat_new adjust to the reference batch
-    adj_counts_ref_comDisp <- ComBat_ref(counts=cts, batch=batch, group=group, shrink=FALSE, genewise.disp=FALSE)
+    adj_counts_ref_comDisp <- ComBat_seq_new(counts=cts, batch=batch, group=group, shrink=FALSE, genewise.disp=FALSE)
     de_called8 <- edgeR_DEpipe(counts_mat=adj_counts_ref_comDisp, batch=batch, group=group, include.batch=FALSE, alpha.unadj=alpha_unadj, alpha.fdr=alpha_fdr)  
     de_called8_deseq <- DESeq2_DEpipe(counts_mat=adj_counts_ref_comDisp, batch=batch, group=group, include.batch=FALSE, alpha.unadj=alpha_unadj, alpha.fdr=alpha_fdr)
     
