@@ -4,10 +4,13 @@ sapply(c("sva", "DESeq2", "ggplot2", "reshape2", "gridExtra", "scales", "dendext
        require, character.only=TRUE)
 
 ## Parameters (change paths when necessary)
-data_dir <- "~/workspace/ComBat-seq/real_data_application"  # path to the signature data (.rds)
-source("~/workspace/ComBat-seq/real_data_application/gfrn_helpers.R")  # path to gfrn_helpers.R
-source("~/workspace/ComBat-seq/ComBat_seq.R"); source("~/workspace/ComBat-seq/helper_seq.R")   
-output_dir <- "~/workspace/ComBat-seq/real_data_application"
+script_dir <- getwd()
+data_dir <- paste0(script_dir, "/real_data_application") #~/workspace/Combat-ref/real_data_application"  # path to the signature data (.rds)
+source(file.path(script_dir, "/real_data_application/gfrn_helpers.R"))  # path to gfrn_helpers.R
+source(file.path(script_dir, "ComBat_seq.R")); 
+source(file.path(script_dir, "helper_seq.R")) 
+source(file.path(script_dir, "Combat_ref.R"))
+output_dir <- data_dir 
 
 pathway_regex <- c("her2", "^egfr", "kraswt")  #"^egfr" 
 set.seed(1)
@@ -51,7 +54,7 @@ combat_sub <- ComBat(cpm(cts_sub, log=TRUE), batch=batch_sub, mod=model.matrix(~
 
 ## Use the new ComBa-ref to adjust data
 start_time <- Sys.time()
-combat_new <- ComBat_seq_new(counts=cts_sub, batch=batch_sub, group=group_sub, genewise.disp=FALSE)
+combat_new <- ComBat_ref(counts=cts_sub, batch=batch_sub, group=group_sub, genewise.disp=FALSE)
 end_time <- Sys.time()
 print(end_time - start_time)
 
