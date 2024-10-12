@@ -9,6 +9,11 @@ Run the simulation test with the following command, where batch_FC = 2, disp_FC 
 ```
 Rscript simulations/sim_DEpipe.R 2 4 12
 ```
+Visualize the simulation results using the following command:
+```
+Rscript simulations/plot_sim.R 2 4
+```
+It creates two plots comparing the true positive rates (TPR) and false positive rates (FPR) of different batch correction methods at p-value = 0.05 and FDR = 0.1.
 
 To run the test for GFRN data, you can just use the following script.
 ```
