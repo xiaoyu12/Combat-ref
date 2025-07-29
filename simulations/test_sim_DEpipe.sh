@@ -1,3 +1,4 @@
+#!/bin/bash
 Rscript sim_DEpipe.R 1 1 12 &
 Rscript sim_DEpipe.R 1 2 12 &
 Rscript sim_DEpipe.R 1 3 12 &
@@ -16,3 +17,6 @@ Rscript sim_DEpipe.R 2.4 2 12 &
 Rscript sim_DEpipe.R 2.4 3 12 &
 Rscript sim_DEpipe.R 2.4 4 12 &
 
+
+wait
+echo "All simulations complete."
