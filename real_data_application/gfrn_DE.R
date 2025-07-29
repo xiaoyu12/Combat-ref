@@ -52,7 +52,7 @@ combatseq_sub <- ComBat_seq(counts=cts_sub, batch=batch_sub, group=group_sub,
 ## Use original ComBat on logCPM
 combat_sub <- ComBat(cpm(cts_sub, log=TRUE), batch=batch_sub, mod=model.matrix(~group_sub))
 
-## Use the new ComBa-ref to adjust data
+## Use the new ComBat-ref to adjust data
 start_time <- Sys.time()
 combat_new <- ComBat_ref(counts=cts_sub, batch=batch_sub, group=group_sub, genewise.disp=FALSE)
 end_time <- Sys.time()

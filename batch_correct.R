@@ -20,7 +20,7 @@ colnames(cts_mat) <- gsub("\\.", "-", colnames(cts_mat))
 # Read the sample file
 samples <- read.csv(sample_file, row.names=1, header=TRUE)
 
-## Use the new ComBa-ref to adjust data
+## Use the new ComBat-ref to adjust data
 start_time <- Sys.time()
 new_mat <- ComBat_ref(counts=cts_mat, batch=samples$batch, group=samples$group, genewise.disp=FALSE)
 end_time <- Sys.time()
