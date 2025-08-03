@@ -53,10 +53,12 @@ print(end_time - start_time)
 
 ## Use the new ComBa-ref to adjust data
 start_time <- Sys.time()
-combat_sub <- ComBat_ref(counts=cts_sub, batch=batch_sub, group=group_sub, genewise.disp=FALSE)
+combatref_sub <- ComBat_ref(counts=cts_sub, batch=batch_sub, group=group_sub, genewise.disp=FALSE)
 end_time <- Sys.time()
 print(end_time - start_time)
 
+## Use NPMatch to adjust data
+npm_sub <- NPM_adjust(counts = cts_sub, batch=batch_sub, group = group_sub, with.cpm.reverse = TRUE)
 
 ## RUVseq
 group1 <- plyr::revalue(as.factor(as.character(group_sub[batch_sub==1])), c("gfp"="0", "her2"="1"))
@@ -76,9 +78,9 @@ ruvseq_sub <- RUVs(cts_sub, cIdx=null_genes, scIdx=group_obj, k=1)$normalizedCou
 ## Normalize library size
 cts_norm <- apply(cts_sub, 2, function(x){x/sum(x)})
 cts_adj_norm <- apply(combatseq_sub, 2, function(x){x/sum(x)})
-cts_adj_new_norm <- apply(combat_sub, 2, function(x){x/sum(x)})
+cts_adj_new_norm <- apply(combatref_sub, 2, function(x){x/sum(x)})
 cts_ruvseq_norm <- apply(ruvseq_sub, 2, function(x){x/sum(x)})
-
+cts_npm_norm <- apply(npm_sub, 2, function(x){x/sum(x)})
 
 ## PCA 
 col_data <- data.frame(Batch=factor(batch_sub), Group=group_sub) 
@@ -108,6 +110,15 @@ plt_adj_new <- ggplot(pca_obj_adj_new$data, aes(x=PC1, y=PC2, color=Batch, shape
        y=sprintf("PC2: %s Variance", percent(pca_obj_adj_new$plot_env$percentVar[2])),
        title="New ComBat-ref") 
 
+# NPM
+seobj_npm <- SummarizedExperiment(assays=cts_npm_norm, colData=col_data)
+pca_obj_npm <- plotPCA(DESeqTransform(seobj_npm), intgroup=c("Batch", "Group"))
+plt_npm <- ggplot(pca_obj_npm$data, aes(x=PC1, y=PC2, color=Batch, shape=Group)) + 
+  geom_point() + 
+  labs(x=sprintf("PC1: %s Variance", percent(pca_obj_npm$plot_env$percentVar[1])),
+       y=sprintf("PC2: %s Variance", percent(pca_obj_npm$plot_env$percentVar[2])),
+       title="NPMatch") 
+
 ## ruvseq
 seobj_ruvseq <- SummarizedExperiment(assays=cts_ruvseq_norm, colData=col_data)
 pca_obj_ruvseq <- plotPCA(DESeqTransform(seobj_ruvseq), intgroup=c("Batch", "Group"))
@@ -117,7 +128,9 @@ plt_ruvseq <- ggplot(pca_obj_ruvseq$data, aes(x=PC1, y=PC2, color=Batch, shape=G
        y=sprintf("PC2: %s Variance", percent(pca_obj_ruvseq$plot_env$percentVar[2])),
        title="RUV-Seq")
 
-plt_PCA_full <- ggarrange(plt, plt_ruvseq, plt_adj, plt_adj_new, ncol=1, nrow=4, common.legend=TRUE, legend="right")
+plt_PCA_full <- ggarrange(plt, plt_ruvseq, plt_adj, plt_adj_new, plt_npm, ncol=1, nrow=5, common.legend=TRUE, legend="right")
+
+
 
 ## Calculate cluster stats
 library(fpc)
@@ -127,24 +140,27 @@ d_adj <- dist(pca_obj_adj$data[, 1:2])
 adj.stats <- cluster.stats(d_adj, as.numeric(pca_obj_adj$data$Group))
 d_new <- dist(pca_obj_adj_new$data[, 1:2])
 new.stats <- cluster.stats(d_new, as.numeric(pca_obj_adj_new$data$Group))
+d_npm <- dist(pca_obj_npm$data[, 1:2])
+npm.stats <- cluster.stats(d_npm, as.numeric(pca_obj_npm$data$Group))
 
 varexp_full <- list(
   unadjusted=batchqc_explained_variation(cpm(cts_sub, log=TRUE), condition=col_data$Group, batch=col_data$Batch)$explained_variation,
   combatseq=batchqc_explained_variation(cpm(combatseq_sub, log=TRUE), condition=col_data$Group, batch=col_data$Batch)$explained_variation,
-  combat=batchqc_explained_variation(cpm(combat_sub, log=TRUE), condition=col_data$Group, batch=col_data$Batch)$explained_variation,
-  ruvseq=batchqc_explained_variation(cpm(ruvseq_sub, log=TRUE), condition=col_data$Group, batch=col_data$Batch)$explained_variation
+  combatref=batchqc_explained_variation(cpm(combatref_sub, log=TRUE), condition=col_data$Group, batch=col_data$Batch)$explained_variation,
+  ruvseq=batchqc_explained_variation(cpm(ruvseq_sub, log=TRUE), condition=col_data$Group, batch=col_data$Batch)$explained_variation,
+  npm=batchqc_explained_variation(cpm(npm_sub, log=TRUE), condition=col_data$Group, batch=col_data$Batch)$explained_variation
 )
 varexp_full_df <- melt(varexp_full)
-varexp_full_df$L1 <- factor(varexp_full_df$L1, levels=c("unadjusted", "ruvseq", "combatseq", "combat"))
+varexp_full_df$L1 <- factor(varexp_full_df$L1, levels=c("unadjusted", "ruvseq", "combatseq", "combatref", "npm"))
 varexp_full_df$L1 <- plyr::revalue(varexp_full_df$L1, c("unadjusted"="Unadjusted", "combatseq"="ComBat-Seq",
-                                                        "ruvseq"="RUV-Seq", "combat"="New ComBat-ref"))
+                                                        "ruvseq"="RUV-Seq", "combatref"="New ComBat-ref", "npm"="NPMatch"))
 varexp_full_df$Var2 <- plyr::revalue(varexp_full_df$Var2, c("Full (Condition+Batch)"="Condition+Batch"))
 
 plt_varexp_full <- ggplot(varexp_full_df, aes(x=Var2, y=value)) +
   geom_boxplot() +
-  facet_wrap(~L1, nrow=4, ncol=1) +
+  facet_wrap(~L1, nrow=length(varexp_full), ncol=1) +
   labs(y="Explained variation") +
   theme(axis.title.x = element_blank())
 
 pca_ggar <- ggarrange(plt_PCA_full, plt_varexp_full, ncol=2, widths=c(0.55, 0.45))
-ggsave("pca_variation_aggr.png", plot=pca_ggar, width=8, height=8, dpi=1000)
+ggsave("./real_data_application/pca_variation_aggr.png", plot=pca_ggar, width=8, height=8, dpi=1000)

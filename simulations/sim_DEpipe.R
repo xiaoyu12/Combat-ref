@@ -1,16 +1,16 @@
 rm(list=ls())  # clear up environment
 
 # local
-setwd("./simulations")  # path to store the simulation CSV results
 script_dir <- "../"  # path to combat-ref scripts
 source(file.path(script_dir, "simulations/sim_DEpipe_helpers.R"))  # path to sim_DEpipe_helpers.R 
 #source(file.path("sim_DEpipe_helpers.R"))
 
 sapply(c("polyester", "Biostrings", "limma", "edgeR", "DESeq2", "sva", "RUVSeq", "MASS"), require, character.only=TRUE)
 source(file.path(script_dir, "ComBat_seq.R"))
+source(file.path(script_dir, "Combat_ref.R"))
 source(file.path(script_dir, "helper_seq.R"))
 set.seed(123)
-
+#setwd("./simulations")  # path to store the simulation CSV results
 
 ####  Parameters
 command_args <- commandArgs(trailingOnly=TRUE)
@@ -19,10 +19,14 @@ batch_fold <- as.numeric(command_args[1]) # mean batch effect: mean of batch 2 i
 disp_fold_level <- as.numeric(command_args[2])  # dispersion batch effect: dispersion of batch 2 is how many times that of batch 1, 1-5
 N_total_sample <- as.numeric(command_args[3])  # total number of samples in the whole count matrix (all batches pooled)
 
+dispersion = 0.15
+if(length(command_args) >= 4) {
+  dispersion = as.numeric(command_args[4])
+}
 coverage <- 5 #as.numeric(command_args[4])  # sequencing coverage
 bio_fold <- 2.4  #as.numeric(command_args[2])  # biological signal
-size_1 <- 1/(0.15)  #as.numeric(command_args[4])  # 1/dispersion in batch 1 
-size_2 <- 1/(0.15*disp_fold_level)  #as.numeric(command_args[5])   # 1/dispersion in batch 2 
+size_1 <- 1/dispersion #1/(0.15)  #as.numeric(command_args[4])  # 1/dispersion in batch 1 
+size_2 <- size_1/disp_fold_level #1/(0.15*disp_fold_level)  #as.numeric(command_args[5])   # 1/dispersion in batch 2 
 balanced <- FALSE  #as.logical(command_args[7]) # is the study design balanced?
 confounding_level <- 0.5  #as.numeric(command_args[3])  # level of confounding, 0-0.5
 sim_outliers <- FALSE #as.logical(command_args[1])  # simulate outlying count in the matrix?
@@ -30,7 +34,8 @@ sim_outliers <- FALSE #as.logical(command_args[1])  # simulate outlying count in
 iterations <- 1  # number of simulations to run (change to larger numbers to run multiple simulations)
 alpha_unadj <- 0.05  # alpha significance level for differential expression (DE)
 #alpha_fdr_seq <- seq(from=0, to=0.15, by=0.01)[-1]  # FDR cutoff for differential expression (DE)
-alpha_fdr_seq <- c(0.05, 0.10, 0.15)
+#alpha_fdr_seq <- c(0.05, 0.10, 0.15)
+alpha_fdr_seq <- c(0.10)
 
 exp_name <- paste0("sim", ifelse(sim_outliers, "_simout", ""), 
                    "_N", N_total_sample, "_meanFC", batch_fold, "_dispFC", disp_fold_level, 
@@ -119,6 +124,14 @@ for(ii in seq_along(alpha_fdr_seq)){
     f_rm <- file.remove(file.path(exp_name, "sim_counts_matrix.rda"))
     
     ####  DE analysis 
+    # Compare with NPM 
+    #adj_counts_NPM <- NPM_adjust(counts=cts, batch=batch, group=group)
+    #write.table(adj_counts_NPM, file="adj_counts_NPM.csv", sep="\t", quote=FALSE)
+    #write.table(cts, file="cts.csv", sep="\t", quote=FALSE)
+    #de_called9 <- edgeR_DEpipe(counts_mat=adj_counts_NPM, batch=batch, group=group, include.batch=FALSE, alpha.unadj=alpha_unadj, alpha.fdr=alpha_fdr)
+    #de_called9_deseq <- DESeq2_DEpipe(counts_mat=adj_counts_NPM, batch=batch, group=group, include.batch=FALSE, alpha.unadj=alpha_unadj, alpha.fdr=alpha_fdr)
+    de_called9 <- NPM_lm_DEpipe(cts=cts, batch=batch, group=group, alpha.unadj=alpha_unadj, alpha.fdr=alpha_fdr)
+    
     # On baseline dataset without batch effect - independent baseline 
     de_called01 <- edgeR_DEpipe(counts_mat=counts_base_indi, batch=batch, group=group, include.batch=FALSE, alpha.unadj=alpha_unadj, alpha.fdr=alpha_fdr)  
     de_called01_deseq <- DESeq2_DEpipe(counts_mat=counts_base_indi, batch=batch, group=group, include.batch=FALSE, alpha.unadj=alpha_unadj, alpha.fdr=alpha_fdr)
@@ -147,11 +160,11 @@ for(ii in seq_along(alpha_fdr_seq)){
     svseq <- svaseq(cts, mod=mod1, mod0=mod0, n.sv=1); cat("\n")
     de_called7 <- edgeR_DEpipe(counts_mat=cts, batch=batch, group=group, covar=svseq$sv, include.batch=FALSE, alpha.unadj=alpha_unadj, alpha.fdr=alpha_fdr)  
     de_called7_deseq <- DESeq2_DEpipe(counts_mat=cts, batch=batch, group=group, covar=svseq$sv, include.batch=FALSE, alpha.unadj=alpha_unadj, alpha.fdr=alpha_fdr)
-    # Compare with Combat_new adjust to the reference batch
-    adj_counts_ref_comDisp <- ComBat_seq_new(counts=cts, batch=batch, group=group, shrink=FALSE, genewise.disp=FALSE)
+    # Compare with Combat_ref adjust to the reference batch
+    adj_counts_ref_comDisp <- ComBat_ref(counts=cts, batch=batch, group=group, genewise.disp=FALSE)
     de_called8 <- edgeR_DEpipe(counts_mat=adj_counts_ref_comDisp, batch=batch, group=group, include.batch=FALSE, alpha.unadj=alpha_unadj, alpha.fdr=alpha_fdr)  
     de_called8_deseq <- DESeq2_DEpipe(counts_mat=adj_counts_ref_comDisp, batch=batch, group=group, include.batch=FALSE, alpha.unadj=alpha_unadj, alpha.fdr=alpha_fdr)
-    
+  
     
     ####  Collect and output results
     DE_objs <- list(Base.edgeR=de_called01, Base.DESeq2=de_called01_deseq,
@@ -161,7 +174,9 @@ for(ii in seq_along(alpha_fdr_seq)){
                     ComBatseq.ebOFF.edgeR=de_called5_ebOFF, ComBatseq.ebOFF.DESeq2=de_called5_deseq_ebOFF,
                     RUVseq.edgeR=de_called6, RUVseq.DESeq2=de_called6_deseq,
                     SVAseq.edgeR=de_called7, SVAseq.DESeq2=de_called7_deseq,
-                    ComBatseq.new.edgeR=de_called8, ComBatseq.new.DESeq2=de_called8_deseq)
+                    ComBatRef.edgeR=de_called8, ComBatRef.DESeq2=de_called8_deseq,
+                    NPM.lm=de_called9)
+
     DEtables <- lapply(DE_objs, function(de_obj){de_obj$de_res})
     
     DEgenes_unadj <- lapply(DE_objs, function(de_obj){de_obj$unadj})

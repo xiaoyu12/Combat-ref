@@ -1,5 +1,7 @@
 library(ggplot2)
 library(dplyr)
+library(ggpubr)
+library(RColorBrewer)
 
 # Function to read and process the data
 process_data <- function(base_dir, file_name) {
@@ -41,7 +43,8 @@ plot_data <- function(meanFC_levels, dispFC_levels, base_dir_fpr, base_dir_tpr) 
         "Adjusted by ComBat-Seq",
         "Adjusted by RUVSeq",
         "Adjusted by SVASeq",
-        "Adjusted by new ComBat-ref"
+        "Adjusted by new ComBat-ref",
+        "Adjusted by NPM"
       )
       plot_data$Method <- factor(methods, levels = methods)
       
@@ -56,10 +59,12 @@ plot_data <- function(meanFC_levels, dispFC_levels, base_dir_fpr, base_dir_tpr) 
         batch_disp_FC = dispFC/1.0
       }
       # Generate plot
+      # Generate a color palette with 9 colors
+      colors <- brewer.pal(9, "Set1")
       p <- ggplot(plot_data, aes(x = MeanFPR, y = MeanTPR, label = Method)) +
-        geom_point(size=3, stroke=1.5, aes(color = Method, shape = Method)) + #geom_text(vjust = 1.5, hjust = 1.5) +
-        scale_shape_manual(values=0:7) +
-        xlim(0, 0.20) +
+        geom_point(size=3, stroke=1.5, aes(color = Method, shape = Method)) + #geom_text(vjust = 1.5, hjust = 1.5) + scale_color_manual(values = colors) +
+        scale_shape_manual(values=0:8) +
+        xlim(0, 0.25) +
         ylim(0.4, 1.0) +
         labs(title = paste("mean_FC =", batch_mean_FC, "disp_FC =", batch_disp_FC),
              x = "Mean False Positive Rate (FPR)",
@@ -113,7 +118,8 @@ plot_fdr_data <- function(meanFC_levels, dispFC_levels, base_dir_fpr, base_dir_t
         "Adjusted by ComBat-Seq",
         "Adjusted by RUVSeq",
         "Adjusted by SVASeq",
-        "Adjusted by new ComBat-ref"
+        "Adjusted by new ComBat-ref",
+        "Adjusted by NPM"
       )
       plot_data$Method <- factor(methods, levels = methods)
       
@@ -128,10 +134,11 @@ plot_fdr_data <- function(meanFC_levels, dispFC_levels, base_dir_fpr, base_dir_t
         batch_disp_FC = dispFC/1.0
       }
       # Generate plot
+      colors <- brewer.pal(9, "Set1")
       p <- ggplot(plot_data, aes(x = MeanFPR, y = MeanTPR, label = Method)) +
         geom_point(size=3, stroke=1.5, aes(color = Method, shape = Method)) + #geom_text(vjust = 1.5, hjust = 1.5) +
-        scale_shape_manual(values=0:7) +
-        xlim(0, 0.20) +
+        scale_shape_manual(values=0:8) +
+        xlim(0, 0.2) +
         ylim(0.0, 1.0) +
         labs(title = paste("mean_FC =", batch_mean_FC, "disp_FC =", batch_disp_FC),
              x = "Mean False Positive Rate (FPR)",

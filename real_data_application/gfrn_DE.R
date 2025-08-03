@@ -10,6 +10,8 @@ source(file.path(script_dir, "/real_data_application/gfrn_helpers.R"))  # path t
 source(file.path(script_dir, "ComBat_seq.R")); 
 source(file.path(script_dir, "helper_seq.R")) 
 source(file.path(script_dir, "Combat_ref.R"))
+
+
 output_dir <- data_dir 
 
 pathway_regex <- c("her2", "^egfr", "kraswt")  #"^egfr" 
@@ -52,9 +54,12 @@ combatseq_sub <- ComBat_seq(counts=cts_sub, batch=batch_sub, group=group_sub,
 ## Use original ComBat on logCPM
 combat_sub <- ComBat(cpm(cts_sub, log=TRUE), batch=batch_sub, mod=model.matrix(~group_sub))
 
+## Use NPM to adjust (in logCPM)
+npm_sub <- NPM_adjust(counts = cts_sub, batch=batch_sub, group = group_sub)
+
 ## Use the new ComBa-ref to adjust data
 start_time <- Sys.time()
-combat_new <- ComBat_ref(counts=cts_sub, batch=batch_sub, group=group_sub, genewise.disp=FALSE)
+combat_ref <- ComBat_ref(counts=cts_sub, batch=batch_sub, group=group_sub, genewise.disp=FALSE)
 end_time <- Sys.time()
 print(end_time - start_time)
 
@@ -94,7 +99,7 @@ for(curr_path in names(path_mapping)){
                        #`Original ComBat`=combat_sub[curr_path, curr_sample_ind],
                        `RUV-Seq`=cpm(ruvseq_sub, log=TRUE)[curr_path, curr_sample_ind],
                        `ComBat-Seq`=cpm(combatseq_sub, log=TRUE)[curr_path, curr_sample_ind],
-                       `New-ComBat-ref`=cpm(combat_new, log = TRUE)[curr_path, curr_sample_ind],
+                       `New-ComBat-ref`=cpm(combat_ref, log = TRUE)[curr_path, curr_sample_ind],
                        Batch=as.factor(batch_sub[curr_sample_ind]),
                        Condition=as.character(group_sub_rev)[curr_sample_ind])
   cpm_df_mlt <- melt(cpm_df, variable.name="Method", id.vars=c("Batch", "Condition"))
@@ -113,11 +118,13 @@ for(curr_path in names(path_mapping)){
 }
 
 
-
 ###########  DE & enrichment analysis 
 path_mapping <- c("her2", "egfr", "kraswt")
-names(path_mapping) <- c("ERBB2", "EGFR", "KRAS")
-#pathways.msigdb <- gmtPathways(file.path(data_dir, "msigdb.v7.1.symbols.gmt"))
+names(path_mapping) <- c("HER2", "EGFR", "KRAS")
+#pathways.msigdb <- gmtPathways(file.path(data_dir, "msigdb.v7.1.symbols.gmt")) 
+#pathways.msigdb[["PID_RAS_PATHWAY"]]
+ras_pathway_genes <- read.csv(file.path(data_dir, "ras-pathway-gene-names.csv"), as.is=TRUE)[,1]
+ras_pathway_genes <- intersect(rownames(cts_sub), ras_pathway_genes)
 
 curr_path <- "her2"
 out_allgenes <- out_DEgenes <- num_DEgenes <- list()
@@ -130,17 +137,19 @@ for(curr_path in path_mapping){
   curr_group <- factor(as.character(group_sub[curr_sample_ind]), levels=c("gfp", curr_path))
   print(table(curr_batch))
   print(table(curr_group))
+  i = match(curr_path, path_mapping)
+  path_name = names(path_mapping)[i]
   
   curr_cts <- cts_sub[, curr_sample_ind]
   curr_combatseq <- combatseq_sub[, curr_sample_ind]
   curr_combat <- combat_sub[, curr_sample_ind]
   curr_ruvseq <- ruvseq_sub[, curr_sample_ind]
   curr_sv <- matrix(svseq$sv, ncol=1)[curr_sample_ind, ]
-  curr_combatnew <- combat_new[, curr_sample_ind]
+  curr_combatref <- combat_ref[, curr_sample_ind]
   
   ##  DE
-  unadj.v = 0.01
-  fdr.v = 0.01
+  unadj.v = 0.05
+  fdr.v = 0.05
   res_unadjusted <- edgeR_DEpipe(cts=curr_cts, batch=curr_batch, group=curr_group, 
                                  include.batch=FALSE, alpha.unadj=unadj.v, alpha.fdr=fdr.v) 
   res_onestep <- edgeR_DEpipe(cts=curr_cts, batch=curr_batch, group=curr_group, 
@@ -151,11 +160,19 @@ for(curr_path in path_mapping){
                              include.batch=FALSE, alpha.unadj=unadj.v, alpha.fdr=fdr.v) 
   res_svaseq <- edgeR_DEpipe(cts=curr_cts, batch=curr_batch, group=curr_group, covar=curr_sv, 
                              include.batch=FALSE, alpha.unadj=unadj.v, alpha.fdr=fdr.v)  
-  res_combatnew <- edgeR_DEpipe(cts=curr_combatnew, batch=curr_batch, group=curr_group, 
+  res_combatnew <- edgeR_DEpipe(cts=curr_combatref, batch=curr_batch, group=curr_group, 
                                 include.batch=FALSE, alpha.unadj=unadj.v, alpha.fdr=fdr.v) 
+  
   fit <- lmFit(curr_combat, design=model.matrix(~curr_group))
   fit <- eBayes(fit)
   res_combat <- list(de_res=topTable(fit, n=nrow(curr_combat)), 
+                     design=model.matrix(~curr_group))
+  
+  #res_NPM <- NPM_lm_DEpipe(cts=curr_cts, batch=curr_batch, group=curr_group, alpha.unadj=unadj.v, alpha.fdr=fdr.v)
+  curr_npm <- npm_sub[, curr_sample_ind]
+  fit <- lmFit(curr_npm, design=model.matrix(~curr_group))
+  fit <- eBayes(fit)
+  res_NPM <- list(de_res=topTable(fit, n=nrow(curr_combat)), 
                      design=model.matrix(~curr_group))
   
   DE_objs <- list(Unadjusted=res_unadjusted, 
@@ -163,8 +180,9 @@ for(curr_path in path_mapping){
                   ComBat=res_combat, 
                   RUVseq=res_ruvseq,
                   SVAseq=res_svaseq,
-                  ComBatseq=res_combatseq,
-                  ComBatref=res_combatnew)
+                  ComBat_seq=res_combatseq,
+                  ComBat_ref=res_combatnew,
+                  NPM=res_NPM)
   DE_tables <- lapply(DE_objs, function(de_obj){de_obj$de_res})
   #tb_nm=names(DE_tables)[1]
   DEgene_list <- lapply(names(DE_tables), function(tb_nm){
@@ -173,18 +191,17 @@ for(curr_path in path_mapping){
     write.csv(curr_tb[1:100, c(1,3,4,5)], row.names=TRUE, quote=FALSE,
               file=file.path(output_dir, sprintf(sprintf("DEgenes_%s_%s.csv", curr_path, tb_nm))))
 
-    if(tb_nm=="ComBat"){col_nm <- "adj.P.Val"}else{col_nm <- "FDR"}
+    if(tb_nm=="ComBat" || tb_nm=='NPM'){col_nm <- "adj.P.Val"}else{col_nm <- "FDR"}
     curr_tb_sig <- curr_tb[curr_tb[, col_nm] < fdr.v, ]
     curr_gene_list <- curr_tb_sig$logFC
     names(curr_gene_list) <- rownames(curr_tb_sig)
     
     # gsea
-    # png(file.path(output_dir, sprintf(sprintf("GSEA_%s_%s.png", curr_path, tb_nm))),
-    #     width=10, height=7, units="in", res=300)
-    # print(plotEnrichment(pathway=pathways.msigdb[["PID_RAS_PATHWAY"]], stats=curr_gene_list) +
-    #         labs(title=sprintf("RAS PATHWAY, %s %s", curr_path, tb_nm)))
-    # dev.off()
-    
+    #png(file.path(output_dir, sprintf(sprintf("GSEA_%s_%s.png", curr_path, tb_nm))),
+    #    width=10, height=7, units="in", res=300)
+    #print(plotEnrichment(pathway=ras_pathway_genes, stats=curr_gene_list) +
+    #        labs(title=sprintf("RAS PATHWAY, %s %s", path_name, tb_nm)))
+    #dev.off()  
     # curr_tb_sig <- curr_tb[curr_tb[, col_nm] < 0.05, ]
     # curr_gene_list <- curr_tb_sig$logFC
     # curr_tb_sig <- curr_tb_sig %>% arrange(desc(abs(logFC)))
@@ -203,6 +220,25 @@ for(curr_path in path_mapping){
     return(curr_gene_list)
   })
   
+  GSEA_list <- lapply(names(DE_tables), function(tb_nm) {
+    curr_tb <- DE_tables[[tb_nm]]
+    if(tb_nm=="ComBat" || tb_nm=='NPM'){col_nm <- "adj.P.Val"}else{col_nm <- "FDR"}
+    curr_tb_sig <- curr_tb[curr_tb[, col_nm] < fdr.v, ]
+    curr_gene_list <- curr_tb_sig$logFC
+    names(curr_gene_list) <- rownames(curr_tb_sig)
+    # gsea
+    #png(file.path(output_dir, sprintf(sprintf("GSEA_%s_%s.png", curr_path, tb_nm))),
+    #    width=10, height=7, units="in", res=300)
+    enrich_plot <- plotEnrichment(pathway=ras_pathway_genes, stats=curr_gene_list) +
+            labs(title=sprintf("RAS PATHWAY, %s %s", path_name, tb_nm))
+    #dev.off()  
+    return (enrich_plot)
+  }
+  )
+  
+  GSEA_ggar <- ggarrange(GSEA_list[[1]], GSEA_list[[4]], GSEA_list[[3]], GSEA_list[[6]], GSEA_list[[8]], GSEA_list[[7]], ncol=2, nrow=3)
+  ggsave(file.path(output_dir, sprintf("GSEA_%s.png", path_name)), plot=GSEA_ggar, width=8, height=12, dpi=1000)
+
   names(DEgene_list) <- names(DE_tables)
   num_DEgenes[[curr_path]] <- sapply(DEgene_list, length)
   out_DEgenes[[curr_path]] <- DEgene_list
@@ -218,7 +254,8 @@ write.csv(df.num_DEgenes, file=file.path(output_dir, "num_DEgenes.csv"))
 ## Overlap between DE genes
 for(curr_path in path_mapping) {
   degenes <- lapply(out_DEgenes[[curr_path]], function(x){names(x)})
-  df.overlap <- data.frame(matrix(NA, nrow=7, ncol=7), row.names=colnames(df.num_DEgenes))
+  num_methods = length(out_DEgenes$her2)   # 8
+  df.overlap <- data.frame(matrix(NA, nrow=num_methods, ncol=num_methods), row.names=colnames(df.num_DEgenes))
   colnames(df.overlap) <- colnames(df.num_DEgenes)
   for(i in 1:(length(degenes)-1)) {
     for(j in (i+1):length(degenes)) {
@@ -244,7 +281,6 @@ lapply(out_allgenes$egfr, function(x){x["EGFR",]})
 
 
 ## RAS pathway gene rankings
-ras_pathway_genes <- read.csv(file.path(data_dir, "ras-pathway-gene-names.csv"), as.is=TRUE)[,1]
 i=1;j=1
 out2 <- list()
 for(i in seq_along(out_allgenes)){
@@ -274,7 +310,7 @@ for(curr_path in seq_along(out_allgenes)){
   names(pcnt_lst) <- names(curr_res)
   pcnt_dt <- melt(pcnt_lst)
   colnames(pcnt_dt)[2] <- c("Method")
-  pcnt_dt$Method <- factor(pcnt_dt$Method, levels=c("Unadjusted", "OneStep", "ComBat", "SVAseq", "RUVseq", "ComBatseq", "ComBat-ref"))
+  pcnt_dt$Method <- factor(pcnt_dt$Method, levels=c("Unadjusted", "OneStep", "ComBat", "SVAseq", "RUVseq", "ComBatseq", "ComBat-ref", "NPM"))
   pcnt_cmp[[curr_path]] <- do.call(rbind, pcnt_lst)
 }
 

@@ -105,10 +105,12 @@ matchDisp <- function(x, disp, target.disp){
 }
 
 
-edgeR_DEpipe <- function(counts_mat, batch, group, include.batch, alpha.unadj, alpha.fdr, covar=NULL){
+edgeR_DEpipe <- function(counts_mat, batch, group, include.batch, alpha.unadj, alpha.fdr, is.normalized = FALSE, covar=NULL){
   cat("DE tool: edgeR\n")
   y <- DGEList(counts=counts_mat)
-  y <- calcNormFactors(y, method="TMM")
+  if (!is.normalized) {
+    y <- calcNormFactors(y, method="TMM")
+  }
   if(include.batch){
     cat("Including batch as covariate\n")
     design <- model.matrix(~ as.factor(group) + as.factor(batch))
@@ -206,3 +208,4 @@ cancelLibsizeEffect <- function(count_matrix){
     count_matrix[,i]/lib_sizes[i]
   }))
 }
+
