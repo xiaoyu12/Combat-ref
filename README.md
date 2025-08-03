@@ -35,8 +35,6 @@ Rscript batch_correct.R gfrn.mat gfrn_samples.csv
 ```
 The script takes two command-line arguments: the first is the count matrix and the second the sample description file. Please see the example "gfrn.mat" and "gfrn_samples.csv" for the file format. The corrected data is written to the "gfrn_corrected.mat" file.
 ## Cite
-Highly Effective Batch Effect Correction Method for RNA-seq Count Data
+[Highly Effective Batch Effect Correction Method for RNA-seq Count Data](https://pubmed.ncbi.nlm.nih.gov/39802213/)
 
 Xiaoyu Zhang
-
-bioRxiv 2024.05.02.592266; doi: https://doi.org/10.1101/2024.05.02.592266
