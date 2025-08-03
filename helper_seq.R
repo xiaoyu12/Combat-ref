@@ -88,3 +88,72 @@ mapDisp <- function(old_mu, new_mu, old_phi, divider){
   }
   return(new_phi)
 }
+
+#####
+
+# Adjust Batch effect using NPMatch
+source(file.path(script_dir, "NPM/R/NPmatch.R"))
+source(file.path(script_dir, "NPM/R/normalize.log2CPM.R"))
+library(limma)
+
+reverse_log2cpm <- function(log2cpm_matrix, total_counts) {
+  # Reverse the log2CPM transformation to get CPM
+  cpm_matrix <- 2^(log2cpm_matrix) - 1
+  
+  total0 <- mean(total_counts)
+  total <- ifelse(total0 < 1e6, total0, 1e6)
+
+  # Use per-sample total counts to scale CPM back to raw counts
+  count_matrix <- sweep(cpm_matrix, 2, total_counts, FUN = "*") / total
+  
+  # Convert to integer (rounding the values)
+  count_matrix <- round(count_matrix)
+  
+  # Convert negative values to 0
+  count_matrix[count_matrix < 0] <- 0
+  
+  # Return the reconstructed count matrix
+  return(count_matrix)
+}
+
+NPM_adjust <- function(counts, batch, group, with.cpm.reverse = FALSE) {
+  ## Intra-sample normalization of the raw data.
+  ## We use the normalize.log2CPM.R function provided
+  nX <- normalize.log2CPM(counts)
+
+    ## Inter-sample normalization by quantile normalization
+  nX <- limma::normalizeQuantiles(nX)
+
+  ## Batch correction with NPmatch
+  cX <- NPmatch(X=nX, y=group, dist.method="cor", sdtop=5000)
+
+  ## reverse the log2CPM transformation
+  if (with.cpm.reverse) {
+    cX <- reverse_log2cpm(cX, colSums(counts))
+  }
+
+  return(cX)
+}
+
+NPM_lm_DEpipe <- function(cts, batch, group, alpha.unadj, alpha.fdr) {
+  ## Intra-sample normalization of the raw data.
+  ## We use the normalize.log2CPM.R function provided
+  nX <- normalize.log2CPM(cts)
+  
+  ## Inter-sample normalization by quantile normalization
+  nX <- limma::normalizeQuantiles(nX)
+  
+  ## Batch correction with NPmatch
+  adj_counts <- NPmatch(X=nX, y=group, dist.method="cor", sdtop=5000)
+  
+  pval_seq <- apply(adj_counts, 1, function(x, group){
+    x_norm <- scale(x, center=TRUE, scale=TRUE)
+    fit3 <- lm(x_norm ~ as.factor(group))
+    return(summary(fit3)$coefficients[2, 4])
+  }, group=group)
+  padj_seq <- p.adjust(pval_seq, method="fdr")
+  
+  de_called <- list(unadj=rownames(cts)[pval_seq < alpha.unadj], fdr=rownames(cts)[padj_seq < alpha.fdr], 
+                    de_res=data.frame(PValue=pval_seq, FDR=padj_seq), design=model.matrix(~as.factor(group)))
+  return(de_called)
+}

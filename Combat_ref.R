@@ -4,7 +4,6 @@
 #' @param counts Raw count matrix from genomic studies (dimensions gene x sample) 
 #' @param batch Batch covariate (only one batch allowed)
 #' @param group Vector / factor for condition of interest 
-#' @param covar_mod Model matrix for other covariates to include in linear model besides batch and condition of interest
 #' @param full_mod Boolean, if TRUE include condition of interest in model
 #' @param gene.subset.n Number of genes to use in empirical Bayes estimation, only useful when shrink = TRUE
 #' @param genewise.disp Compute dispersion parameter for each gene = FALSE
@@ -17,7 +16,7 @@
 #' @export
 #' 
 
-ComBat_ref <- function(counts, batch, group=NULL, covar_mod=NULL, full_mod=TRUE, 
+ComBat_ref <- function(counts, batch, group=NULL, full_mod=TRUE, 
                        gene.subset.n=NULL, genewise.disp=FALSE) 
 {
   ########  Preparation  ######## 
