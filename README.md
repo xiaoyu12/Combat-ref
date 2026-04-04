@@ -28,8 +28,8 @@ To run the test for NASA GenLab data, use the following script.
 ```
 Rscript nasa_data/nasa_application.R
 ```
-## Batch Correct Count Data
-Run the "batch_correct.R" to correct the batch effects in RNA-seq count data. For example:
+## How to Run Combat-ref to Batch Correct Count Data
+Download the Rscripts in this folder and Run the "batch_correct.R" to correct the batch effects in RNA-seq count data. For example:
 ```
 Rscript batch_correct.R gfrn.mat gfrn_samples.csv
 ```
