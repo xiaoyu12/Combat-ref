@@ -42,118 +42,33 @@ monte_carlo_int_NB <- function(dat, mu, gamma, phi, gene.subset.n){
 } 
 
 
-####  Match quantiles
+####  Match quantiles (vectorized)
 # keep_zero: zero values in the original counts don't change
 match_quantiles <- function(counts_sub, old_mu, old_phi, new_mu, new_phi, keep_zero=TRUE){
-  new_counts_sub <- matrix(NA, nrow=nrow(counts_sub), ncol=ncol(counts_sub))
-  for(a in 1:nrow(counts_sub)){
-    for(b in 1:ncol(counts_sub)){
-      if(keep_zero) {
-        if(counts_sub[a, b] <= 1){
-          new_counts_sub[a,b] <- counts_sub[a, b]
-        }else{
-          tmp_p <- pnbinom(counts_sub[a, b]-1, mu=old_mu[a, b], size=1/old_phi[a])
-          if(abs(tmp_p-1)<1e-4){
-            new_counts_sub[a,b] <- counts_sub[a, b]  
-            # for outlier count, if p==1, will return Inf values -> use original count instead
-          }else{
-            new_counts_sub[a,b] <- 1+qnbinom(tmp_p, mu=new_mu[a, b], size=1/new_phi[a])
-          }
-        }
-      } else {
-        tmp_p = pnbinom(counts_sub[a, b], mu=old_mu[a, b], size=1/old_phi[a])
-  
-        if(abs(tmp_p-1) < 1e-6) {
-          new_counts_sub[a,b] <- counts_sub[a, b]  
-          # for outlier count, if p==1, will return Inf values -> use original count instead
-        } else {
-          new_counts_sub[a,b] <- qnbinom(tmp_p, mu=new_mu[a, b], size=1/new_phi[a])
-        }
-      }
-    }
+  nr <- nrow(counts_sub)
+  nc <- ncol(counts_sub)
+  # Expand per-gene phi vectors into matrices matching counts_sub dimensions
+  old_phi_mat <- vec2mat(old_phi, nc)
+  new_phi_mat <- vec2mat(new_phi, nc)
+
+  if(keep_zero) {
+    # Compute CDF for counts-1 (shift for keep_zero mode)
+    tmp_p <- pnbinom(counts_sub - 1, mu=old_mu, size=1/old_phi_mat)
+    # Map through new distribution, adding 1 back
+    new_counts_sub <- 1 + qnbinom(tmp_p, mu=new_mu, size=1/new_phi_mat)
+    # Keep original values where count <= 1 or CDF is essentially 1 (outliers)
+    keep_mask <- (counts_sub <= 1) | (abs(tmp_p - 1) < 1e-4)
+    new_counts_sub[keep_mask] <- counts_sub[keep_mask]
+  } else {
+    tmp_p <- pnbinom(counts_sub, mu=old_mu, size=1/old_phi_mat)
+    new_counts_sub <- qnbinom(tmp_p, mu=new_mu, size=1/new_phi_mat)
+    # Keep original for outlier counts where CDF is essentially 1
+    outlier_mask <- abs(tmp_p - 1) < 1e-6
+    new_counts_sub[outlier_mask] <- counts_sub[outlier_mask]
   }
+
   return(new_counts_sub)
 }
 
 
 
-mapDisp <- function(old_mu, new_mu, old_phi, divider){
-  new_phi <- matrix(NA, nrow=nrow(old_mu), ncol=ncol(old_mu))
-  for(a in 1:nrow(old_mu)){
-    for(b in 1:ncol(old_mu)){
-      old_var <- old_mu[a, b] + old_mu[a, b]^2 * old_phi[a, b]
-      new_var <- old_var / (divider[a, b]^2)
-      new_phi[a, b] <- (new_var - new_mu[a, b]) / (new_mu[a, b]^2)
-    }
-  }
-  return(new_phi)
-}
-
-#####
-
-# Adjust Batch effect using NPMatch
-# source(file.path(script_dir, "NPM/R/NPmatch.R"))
-# source(file.path(script_dir, "NPM/R/normalize.log2CPM.R"))
-# library(limma)
-
-# reverse_log2cpm <- function(log2cpm_matrix, total_counts) {
-#   # Reverse the log2CPM transformation to get CPM
-#   cpm_matrix <- 2^(log2cpm_matrix) - 1
-  
-#   total0 <- mean(total_counts)
-#   total <- ifelse(total0 < 1e6, total0, 1e6)
-
-#   # Use per-sample total counts to scale CPM back to raw counts
-#   count_matrix <- sweep(cpm_matrix, 2, total_counts, FUN = "*") / total
-  
-#   # Convert to integer (rounding the values)
-#   count_matrix <- round(count_matrix)
-  
-#   # Convert negative values to 0
-#   count_matrix[count_matrix < 0] <- 0
-  
-#   # Return the reconstructed count matrix
-#   return(count_matrix)
-# }
-
-# NPM_adjust <- function(counts, batch, group, with.cpm.reverse = FALSE) {
-#   ## Intra-sample normalization of the raw data.
-#   ## We use the normalize.log2CPM.R function provided
-#   nX <- normalize.log2CPM(counts)
-
-#     ## Inter-sample normalization by quantile normalization
-#   nX <- limma::normalizeQuantiles(nX)
-
-#   ## Batch correction with NPmatch
-#   cX <- NPmatch(X=nX, y=group, dist.method="cor", sdtop=5000)
-
-#   ## reverse the log2CPM transformation
-#   if (with.cpm.reverse) {
-#     cX <- reverse_log2cpm(cX, colSums(counts))
-#   }
-
-#   return(cX)
-# }
-
-# NPM_lm_DEpipe <- function(cts, batch, group, alpha.unadj, alpha.fdr) {
-#   ## Intra-sample normalization of the raw data.
-#   ## We use the normalize.log2CPM.R function provided
-#   nX <- normalize.log2CPM(cts)
-  
-#   ## Inter-sample normalization by quantile normalization
-#   nX <- limma::normalizeQuantiles(nX)
-  
-#   ## Batch correction with NPmatch
-#   adj_counts <- NPmatch(X=nX, y=group, dist.method="cor", sdtop=5000)
-  
-#   pval_seq <- apply(adj_counts, 1, function(x, group){
-#     x_norm <- scale(x, center=TRUE, scale=TRUE)
-#     fit3 <- lm(x_norm ~ as.factor(group))
-#     return(summary(fit3)$coefficients[2, 4])
-#   }, group=group)
-#   padj_seq <- p.adjust(pval_seq, method="fdr")
-  
-#   de_called <- list(unadj=rownames(cts)[pval_seq < alpha.unadj], fdr=rownames(cts)[padj_seq < alpha.fdr], 
-#                     de_res=data.frame(PValue=pval_seq, FDR=padj_seq), design=model.matrix(~as.factor(group)))
-#   return(de_called)
-# }

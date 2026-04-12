@@ -16,18 +16,18 @@
 #' @export
 #' 
 
-ComBat_ref <- function(counts, batch, group=NULL, full_mod=TRUE, 
-                       gene.subset.n=NULL, genewise.disp=FALSE) 
+ComBat_ref <- function(counts, batch, group=NULL, full_mod=TRUE,
+                       gene.subset.n=NULL, genewise.disp=FALSE)
 {
-  ########  Preparation  ######## 
+  ########  Preparation  ########
   counts <- as.matrix(counts)
-  
+
   ## Does not support 1 sample per batch yet
   batch <- as.factor(batch)
   if(any(table(batch)<=1)){
     stop("ComBat-seq doesn't support 1 sample per batch yet")
   }
-  
+
   ## Remove genes with only 0 counts in any batch
   keep_lst <- lapply(levels(batch), function(b){
     which(apply(counts[, batch==b], 1, function(x){!all(x==0)}))
@@ -36,58 +36,50 @@ ComBat_ref <- function(counts, batch, group=NULL, full_mod=TRUE,
   rm <- setdiff(1:nrow(counts), keep)
   countsOri <- counts
   counts <- counts[keep, ]
-  
+
   # require bioconductor 3.7, edgeR 3.22.1
   dge_obj <- DGEList(counts=counts)
-  
+
   ## Prepare characteristics on batches
   n_batch <- nlevels(batch)  # number of batches
-  batches_ind <- lapply(1:n_batch, function(i){which(batch==levels(batch)[i])}) # list of samples in each batch  
+  batches_ind <- lapply(1:n_batch, function(i){which(batch==levels(batch)[i])}) # list of samples in each batch
   n_batches <- sapply(batches_ind, length)
-  #if(any(n_batches==1)){mean_only=TRUE; cat("Note: one batch has only one sample, setting mean.only=TRUE\n")}
   n_sample <- sum(n_batches)
   cat("Found",n_batch,'batches\n')
-  
-  # disp_common = rep(0, n_batch)
-  # for (i in 1:n_batch) {
-  #   disp_common[i] <- estimate_Batch_CommonDisp(counts[, batches_ind[[i]]], as.character(group[batches_ind[[i]]]))
-  #   cat("Batch ",i, " dispersion = ", disp_common[i], "\n")
-  # }
-  
-  #if(any(n_batches==1)){mean_only=TRUE; cat("Note: one batch has only one sample, setting mean.only=TRUE\n")}
-  
-  ## Make design matrix 
-  # batch, use the first batch as the reference
-  batchmod <- model.matrix(~batch)  # colnames: levels(batch)
-  # covariate
+
+  ## Build covariate model matrix
   group <- as.factor(group)
-  n_group <- nlevels(group)      # number of groups
-  groups_ind <- lapply(1:n_group, function(i) {which(group==levels(group)[i])})  # list of samples in each group
-  n_groups <- sapply(groups_ind, length)
   if(full_mod & nlevels(group)>1){
     cat("Using full model in ComBat-seq.\n")
-    mod <- model.matrix(~0+group)  # model.matrix(~0+group)
+    mod <- model.matrix(~0+group)
   }else{
     cat("Using null model in ComBat-seq.\n")
     mod <- model.matrix(~1, data=as.data.frame(t(counts)))
   }
-  # combine
-  design <- cbind(batchmod, mod)
-  ## Check for intercept in covariates, and drop if present
-  check <- apply(design, 2, function(x) all(x == 1))
-  #if(!is.null(ref)){check[ref]=FALSE} ## except don't throw away the reference batch indicator
-  design <- as.matrix(design[,!check])
+
+  ## Helper: build design matrix from current batch factor
+  build_design <- function(batch, mod) {
+    batchmod <- model.matrix(~batch)
+    design <- cbind(batchmod, mod)
+    check <- apply(design, 2, function(x) all(x == 1))
+    design <- as.matrix(design[,!check])
+    list(design=design, batchmod=batchmod)
+  }
+
+  dm <- build_design(batch, mod)
+  design <- dm$design
+  batchmod <- dm$batchmod
+
   ## Check if the design is confounded
   if(qr(design)$rank<ncol(design)){
-    #if(ncol(design)<=(n_batch)){stop("Batch variables are redundant! Remove one or more of the batch variables so they are no longer confounded")}
     if(ncol(design)==(n_batch+1)){stop("The covariate is confounded with batch! Remove the covariate and rerun ComBat-Seq")}
     if(ncol(design)>(n_batch+1)){
       if((qr(design[,-c(1:n_batch)])$rank<ncol(design[,-c(1:n_batch)]))){stop('The covariates are confounded! Please remove one or more of the covariates so the design is not confounded')
       }else{stop("At least one covariate is confounded with batch! Please remove confounded covariates and rerun ComBat-Seq")}}
   }
-  
+
   cat("Estimating dispersions\n")
-  ## Estimate common dispersion within each batch 
+  ## Estimate common dispersion within each batch
   disp_common <- sapply(1:n_batch, function(i){
     if((n_batches[i] <= ncol(design)-ncol(batchmod)+1) | qr(mod[batches_ind[[i]], ])$rank < ncol(mod)){
       # not enough residual degree of freedom
@@ -97,41 +89,28 @@ ComBat_ref <- function(counts, batch, group=NULL, full_mod=TRUE,
     }
   })
   for(i in 1:n_batch) {
-    cat("Batch ",i, " dispersion = ", disp_common[i], "\n")
+    cat("Batch", levels(batch)[i], "dispersion =", disp_common[i], "\n")
   }
+
   # Choose the batch with the smallest dispersion as the reference batch
-  ref_batch = 1
-  for (i in 2:n_batch) {
-    if (disp_common[i] < disp_common[ref_batch]) {
-      ref_batch = i
-    }
-  }
-  cat("Reference batch: ", ref_batch, "\n")
-  # Set reference batch as batch 1
+  ref_batch <- which.min(disp_common)
+  cat("Reference batch: ", levels(batch)[ref_batch], "\n")
+
+  # Reorder factor levels so the reference batch becomes the first level
   if(ref_batch != 1) {
-    # swap disp_common
-    tmp <- disp_common[1]
-    disp_common[1] <- disp_common[ref_batch]
-    disp_common[ref_batch] <- tmp
-    for(i in 1:n_sample) {
-      if(batch[i] == ref_batch) {
-        batch[i] = 1
-      } else if (batch[i] == 1) {
-        batch[i] = ref_batch
-      }
-    }
+    # Swap dispersion values
+    disp_common[c(1, ref_batch)] <- disp_common[c(ref_batch, 1)]
+    # Reorder factor levels (not rename) so ref_batch level comes first
+    new_order <- seq_along(levels(batch))
+    new_order[c(1, ref_batch)] <- new_order[c(ref_batch, 1)]
+    batch <- factor(batch, levels = levels(batch)[new_order])
+    # Rebuild batch indices and design matrix
+    batches_ind <- lapply(1:n_batch, function(i){which(batch==levels(batch)[i])})
+    n_batches <- sapply(batches_ind, length)
+    dm <- build_design(batch, mod)
+    design <- dm$design
+    batchmod <- dm$batchmod
   }
-  # re-compute batches_ind
-  batches_ind <- lapply(1:n_batch, function(i){which(batch==levels(batch)[i])}) # list of samples in each batch
-  n_batches <- sapply(batches_ind, length)
-  # Update the design matrix
-  batchmod <- model.matrix(~batch)  # colnames: levels(batch)
-  # combine
-  design <- cbind(batchmod, mod)
-  ## Check for intercept in covariates, and drop if present
-  check <- apply(design, 2, function(x) all(x == 1))
-  #if(!is.null(ref)){check[ref]=FALSE} ## except don't throw away the reference batch indicator
-  design <- as.matrix(design[,!check])
   
   if(genewise.disp) {  
     genewise_disp_lst <- lapply(1:n_batch, function(j){
@@ -173,10 +152,10 @@ ComBat_ref <- function(counts, batch, group=NULL, full_mod=TRUE,
     old_phi <- phi_hat[, kk]
     new_mu <- exp(log(old_mu)-vec2mat(gamma_hat[, kk-1], n_batches[kk]))
     # avoid exploding count (mu), new_mu shouldn't increase to more than the ref batch if gamma_hat < 0
-    increased_genes = which(gamma_hat[, kk-1] < -0.2)
-    ncol = ncol(new_mu)
-    ref_max = vec2mat(rowMaxs(mu_hat[, batches_ind[[1]]]), ncol)
-    new_mu[increased_genes, ] = pmin(new_mu[increased_genes, ], ref_max[increased_genes, ])
+    increased_genes <- which(gamma_hat[, kk-1] < -0.2)
+    n_cols <- ncol(new_mu)
+    ref_max <- vec2mat(matrixStats::rowMaxs(mu_hat[, batches_ind[[1]]]), n_cols)
+    new_mu[increased_genes, ] <- pmin(new_mu[increased_genes, ], ref_max[increased_genes, ])
     new_phi <- phi_hat[, 1]
     adjust_counts[, batches_ind[[kk]]] <- match_quantiles(counts_sub=counts_sub,
                                                           old_mu=old_mu, old_phi=old_phi,
