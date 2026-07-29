@@ -18,8 +18,11 @@
 #'   automatic minimum-dispersion selection.
 #' @param lib_size Optional positive finite library sizes aligned with samples.
 #'   `NULL` reproduces the legacy edgeR library-size behavior.
-#' @param return_model Logical. If `TRUE`, include selected internal matrices in
-#'   `diagnostics`. Large edgeR fit objects are not returned.
+#' @param verbose Logical. If `TRUE`, print concise progress messages with
+#'   `cli`. Defaults to `interactive()`.
+#' @param keep_model Logical. If `TRUE`, include selected intermediate model
+#'   quantities under the `model` field. Large edgeR fit objects are not
+#'   returned.
 #'
 #' @return A `combatref_result` object. Use `$adjusted_counts` to access the
 #'   corrected count matrix.
@@ -40,8 +43,12 @@
 #' fit <- combat_ref(counts, batch = batch, group = group)
 #' adjusted_counts <- fit$adjusted_counts
 combat_ref <- function(counts, batch, group = NULL, reference_batch = NULL,
-                       lib_size = NULL, return_model = FALSE) {
+                       lib_size = NULL, verbose = interactive(),
+                       keep_model = FALSE) {
   call <- match.call()
+  if (isTRUE(verbose)) {
+    cli::cli_alert_info("Validating input data")
+  }
   validated <- validate_combat_inputs(
     counts = counts,
     batch = batch,
@@ -49,17 +56,39 @@ combat_ref <- function(counts, batch, group = NULL, reference_batch = NULL,
     reference_batch = reference_batch,
     lib_size = lib_size
   )
+  batch_sizes <- table(validated$batch)
+  group_sizes <- if (is.null(validated$group)) NULL else table(validated$group)
 
-  adjusted <- ComBat_ref(
-    counts = validated$counts,
-    batch = validated$batch,
-    group = validated$group,
-    reference_batch = validated$reference_batch,
-    lib_size = validated$lib_size,
-    genewise.disp = FALSE
-  )
+  if (isTRUE(verbose)) {
+    cli::cli_alert_success(
+      "Accepted {nrow(validated$counts)} genes across {ncol(validated$counts)} samples"
+    )
+    cli::cli_alert_info("Detected {length(batch_sizes)} batches: {format_named_counts(batch_sizes)}")
+    if (!is.null(group_sizes)) {
+      cli::cli_alert_info("Biological groups: {format_named_counts(group_sizes)}")
+    }
+    if (is.null(validated$reference_batch)) {
+      cli::cli_alert_info("Selecting the reference batch automatically")
+    } else {
+      cli::cli_alert_info("Using requested reference batch: {validated$reference_batch}")
+    }
+    cli::cli_alert_info("Fitting the baseline ComBat-ref negative-binomial model")
+  }
+
+  legacy_output <- capture.output({
+    adjusted <- ComBat_ref(
+      counts = validated$counts,
+      batch = validated$batch,
+      group = validated$group,
+      reference_batch = validated$reference_batch,
+      lib_size = validated$lib_size,
+      genewise.disp = FALSE
+    )
+  })
   selected_reference <- attr(adjusted, "reference_batch")
+  model <- attr(adjusted, "model")
   attr(adjusted, "reference_batch") <- NULL
+  attr(adjusted, "model") <- NULL
 
   removed_genes <- rownames(validated$counts)[
     vapply(seq_len(nrow(validated$counts)), function(i) {
@@ -68,12 +97,25 @@ combat_ref <- function(counts, batch, group = NULL, reference_batch = NULL,
   ]
 
   diagnostics <- list(
-    n_genes = nrow(validated$counts),
+    n_genes_input = nrow(validated$counts),
+    n_genes_adjusted = nrow(adjusted),
+    n_genes_filtered = length(removed_genes),
     n_samples = ncol(validated$counts),
-    n_removed_genes = length(removed_genes)
+    batch_sizes = batch_sizes,
+    group_sizes = group_sizes,
+    automatic_reference = is.null(validated$reference_batch),
+    reference_batch = selected_reference
   )
-  if (return_model) {
-    diagnostics$design <- validated$design
+
+  if (isTRUE(verbose)) {
+    cli::cli_alert_success("Selected reference batch: {selected_reference}")
+    if (length(removed_genes) > 0) {
+      cli::cli_alert_info(
+        "Filtered {length(removed_genes)} genes that were all zero within at least one batch"
+      )
+    }
+    cli::cli_alert_info("Mapping non-reference counts to the reference distribution")
+    cli::cli_alert_success("Batch correction completed")
   }
 
   new_combatref_result(
@@ -81,10 +123,13 @@ combat_ref <- function(counts, batch, group = NULL, reference_batch = NULL,
     reference_batch = selected_reference,
     batch = validated$batch,
     group = validated$group,
-    design = validated$design,
-    dispersions = NULL,
     removed_genes = removed_genes,
     diagnostics = diagnostics,
+    model = if (isTRUE(keep_model)) model else NULL,
     call = call
   )
+}
+
+format_named_counts <- function(x) {
+  paste0(names(x), " (n = ", as.integer(x), ")", collapse = ", ")
 }

@@ -9,11 +9,11 @@
 Development package for the original ComBat-ref correction algorithm.
 }
 \author{
-\strong{Maintainer}: ComBat-refQL contributors \email{unknown@example.com}
+\strong{Maintainer}: Thomas Sirchi \email{thomasirchi@gmail.com}
 
 Authors:
 \itemize{
-  \item ComBat-refQL contributors \email{unknown@example.com}
+  \item Thomas Sirchi \email{thomasirchi@gmail.com}
 }
 
 Other contributors:

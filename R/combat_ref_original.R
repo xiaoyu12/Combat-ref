@@ -180,5 +180,15 @@ ComBat_ref <- function(counts, batch, group=NULL, full_mod=TRUE,
   adjust_counts_whole[keep, ] <- adjust_counts
   adjust_counts_whole[rm, ] <- countsOri[rm, ]
   attr(adjust_counts_whole, "reference_batch") <- selected_reference_batch
+  attr(adjust_counts_whole, "model") <- list(
+    design = design,
+    common_dispersions = stats::setNames(disp_common, levels(batch)),
+    genewise_dispersions = genewise_disp_lst,
+    phi_matrix = phi_matrix,
+    coefficients = glm_f$coefficients,
+    fitted_means = mu_hat,
+    library_sizes = dge_obj$samples$lib.size,
+    offset = dge_obj$offset
+  )
   return(adjust_counts_whole)
 }

@@ -15,7 +15,23 @@ test_that("counts must be valid", {
   expect_error(combat_ref(bad, fixture$batch, fixture$group), "all-zero samples")
 
   bad <- matrix(as.character(counts), nrow = nrow(counts), dimnames = dimnames(counts))
-  expect_error(combat_ref(bad, fixture$batch, fixture$group), "numeric")
+  expect_error(combat_ref(bad, fixture$batch, fixture$group), "raw, non-negative integer counts")
+
+  bad <- counts
+  bad[1, 1] <- 1.5
+  expect_error(combat_ref(bad, fixture$batch, fixture$group), "TPM, CPM, logCPM")
+})
+
+test_that("integer and integer-like double counts are accepted", {
+  fixture <- combatrefql_legacy_fixtures()[["numeric_balanced"]]
+
+  integer_counts <- fixture$counts
+  storage.mode(integer_counts) <- "integer"
+  expect_no_error(combat_ref(integer_counts, fixture$batch, fixture$group))
+
+  double_counts <- fixture$counts
+  storage.mode(double_counts) <- "double"
+  expect_no_error(combat_ref(double_counts, fixture$batch, fixture$group))
 })
 
 test_that("metadata must align exactly", {
