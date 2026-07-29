@@ -19,7 +19,10 @@ test_that("CLI delegates to package implementation", {
   )
   utils::write.csv(samples, sample_file, quote = FALSE)
 
-  script <- normalizePath(test_path("../../inst/scripts/combat-ref"))
+  script <- system.file("scripts", "combat-ref", package = "combatrefql")
+  if (!nzchar(script)) {
+    script <- normalizePath(test_path("../../inst/scripts/combat-ref"))
+  }
   status <- system2(
     file.path(R.home("bin"), "Rscript"),
     c(script, count_file, sample_file, output_file),

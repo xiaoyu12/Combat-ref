@@ -99,7 +99,8 @@ ComBat_ref <- function(counts, batch, group=NULL, full_mod=TRUE,
   } else {
     match(reference_batch, levels(batch))
   }
-  cat("Reference batch: ", levels(batch)[ref_batch], "\n")
+  selected_reference_batch <- levels(batch)[ref_batch]
+  cat("Reference batch: ", selected_reference_batch, "\n")
 
   # Reorder factor levels so the reference batch becomes the first level
   if(ref_batch != 1) {
@@ -172,6 +173,6 @@ ComBat_ref <- function(counts, batch, group=NULL, full_mod=TRUE,
   dimnames(adjust_counts_whole) <- dimnames(countsOri)
   adjust_counts_whole[keep, ] <- adjust_counts
   adjust_counts_whole[rm, ] <- countsOri[rm, ]
-  attr(adjust_counts_whole, "reference_batch") <- levels(batch)[ref_batch]
+  attr(adjust_counts_whole, "reference_batch") <- selected_reference_batch
   return(adjust_counts_whole)
 }

@@ -5,4 +5,5 @@
 #' @keywords internal
 #' @importFrom edgeR DGEList estimateGLMCommonDisp estimateGLMTagwiseDisp glmFit glmFit.default
 #' @importFrom matrixStats rowMaxs
+#' @importFrom stats dnbinom model.matrix pnbinom qnbinom
 "_PACKAGE"
