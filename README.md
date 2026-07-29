@@ -39,58 +39,65 @@ For this project, the following pieces must remain distinct:
 
 Replacing `glmFit()` with `glmQLFit()` alone does not define a valid count-adjustment method. The exact role of quasi-likelihood quantities in the ComBat-refQL correction algorithm must be formally specified, implemented as a separate pathway, and validated against baseline ComBat-ref behavior and simulation targets.
 
-## Planned R-Package Interface
+## R-Package Interface
 
-The intended package name is `combatrefql`, and the main planned user-facing function is `combat_ref_ql()`.
+The package name is `combatrefql`, and the current user-facing function is `combat_ref()`.
 
-Planned interface, not yet implemented:
+The current exported method is the baseline ComBat-ref algorithm. Quasi-likelihood correction remains future work.
 
 ```r
 library(combatrefql)
 
-adjusted <- combat_ref_ql(
+fit <- combat_ref(
   counts = counts,
   batch = metadata$batch,
-  group = metadata$condition,
-  reference_batch = "batch1"
+  group = metadata$condition
 )
+
+adjusted_counts <- fit$adjusted_counts
 ```
 
-The package interface should eventually accept count matrices and metadata vectors directly, rather than requiring command-line arguments and fixed output files.
+The package interface accepts count matrices and metadata vectors directly, rather than requiring command-line arguments and fixed output files.
 
 ## Installation
 
-ComBat-refQL is not yet structured as an installable R package. For now, this repository should be treated as a development workspace.
-
-Planned development installation, once package metadata exists:
+Development installation:
 
 ```r
 # install.packages("pak")
 pak::pak("Thokas99/ComBat-refQL")
 ```
 
-This command is provisional and should not be considered supported until `DESCRIPTION`, `NAMESPACE`, documentation, and tests are in place.
+The repository is still under development. Licensing and redistribution terms for the upstream-derived code require manual clarification before public release.
 
 ## Minimal Usage Example
 
-Current script-oriented workflow:
+Current R workflow:
+
+```r
+counts <- matrix(
+  c(10, 12, 30, 33, 8, 9, 28, 31,
+    4, 5, 14, 16, 3, 4, 15, 17,
+    50, 55, 120, 130, 48, 52, 125, 135,
+    1, 2, 4, 5, 1, 2, 5, 6),
+  nrow = 4,
+  byrow = TRUE,
+  dimnames = list(paste0("gene", 1:4), paste0("sample", 1:8))
+)
+batch <- rep(c("batch_A", "batch_B"), each = 2, times = 2)
+group <- rep(c("ctrl", "treated"), each = 4)
+
+fit <- combat_ref(counts, batch = batch, group = group)
+adjusted_counts <- fit$adjusted_counts
+```
+
+Command-line compatibility:
 
 ```sh
 Rscript batch_correct.R gfrn.mat gfrn_samples.csv
 ```
 
-This reads a count matrix and sample metadata file, runs the current ComBat-ref correction code, and writes a corrected matrix. This is legacy behavior from the research implementation and will be retained as baseline behavior until regression tests exist.
-
-Planned R workflow:
-
-```r
-adjusted <- combat_ref_ql(
-  counts = counts,
-  batch = metadata$batch,
-  group = metadata$condition,
-  reference_batch = "batch1"
-)
-```
+The root `batch_correct.R` script is retained as a deprecated wrapper. The package CLI lives at `inst/scripts/combat-ref`.
 
 ## Development Roadmap
 

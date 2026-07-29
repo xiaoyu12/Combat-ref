@@ -1,0 +1,8 @@
+.DS_Store
+*.Rcheck/
+*.tar.gz
+*.tmp
+*.log
+*.png
+*.mat
+*_corrected.mat

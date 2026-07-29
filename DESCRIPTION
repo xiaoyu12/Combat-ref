@@ -1,0 +1,26 @@
+Package: combatrefql
+Title: Reference-Batch RNA-Seq Batch Correction
+Version: 0.0.0.9000
+Authors@R: c(
+    person("Xiaoyu", "Zhang", role = "ctb"),
+    person("ComBat-refQL contributors", role = c("aut", "cre"), email = "unknown@example.com")
+  )
+Description: Development package for refactoring the original ComBat-ref
+    reference-batch RNA-seq batch-correction implementation. The current
+    exported method preserves the original ComBat-ref algorithm; quasi-likelihood
+    correction is future work and is not implemented.
+License: Unknown
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 4.1)
+Imports:
+    edgeR,
+    matrixStats,
+    stats,
+    utils
+Suggests:
+    devtools,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.0.0

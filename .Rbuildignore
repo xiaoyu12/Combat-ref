@@ -1,0 +1,17 @@
+^\.git$
+^\.github$
+^\.DS_Store$
+^ComBat-seq\.Rproj$
+^Combat_ref\.R$
+^ComBat_seq\.R$
+^helper_seq\.R$
+^batch_correct\.R$
+^simulations$
+^real_data_application$
+^nasa_data$
+^.*\.png$
+^.*\.mat$
+^.*\.csv$
+^.*\.rds$
+^.*\.RData$
+^CODE_AUDIT\.md$
