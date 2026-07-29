@@ -94,10 +94,10 @@ adjusted_counts <- fit$adjusted_counts
 Command-line compatibility:
 
 ```sh
-Rscript batch_correct.R gfrn.mat gfrn_samples.csv
+Rscript inst/scripts/combat-ref counts.tsv samples.csv adjusted_counts.tsv
 ```
 
-The root `batch_correct.R` script is retained as a deprecated wrapper. The package CLI lives at `inst/scripts/combat-ref`.
+The CLI is a thin wrapper around `combatrefql::combat_ref()`.
 
 ## Development Roadmap
 
