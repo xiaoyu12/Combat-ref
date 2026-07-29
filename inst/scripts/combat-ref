@@ -1,0 +1,85 @@
+#!/usr/bin/env Rscript
+
+load_combatrefql <- function() {
+  if (requireNamespace("combatrefql", quietly = TRUE)) {
+    return(invisible(TRUE))
+  }
+
+  file_arg <- grep("^--file=", commandArgs(FALSE), value = TRUE)
+  script_path <- if (length(file_arg)) {
+    normalizePath(sub("^--file=", "", file_arg[[1]]), mustWork = FALSE)
+  } else {
+    tryCatch(normalizePath(sys.frame(1)$ofile), error = function(e) NA_character_)
+  }
+  if (!is.na(script_path)) {
+    repo_root <- normalizePath(file.path(dirname(script_path), "..", ".."), mustWork = FALSE)
+    if (file.exists(file.path(repo_root, "DESCRIPTION")) && requireNamespace("devtools", quietly = TRUE)) {
+      devtools::load_all(repo_root, quiet = TRUE)
+      return(invisible(TRUE))
+    }
+  }
+
+  stop("Package `combatrefql` is not installed. Install it or run this script from the package checkout.", call. = FALSE)
+}
+
+find_column <- function(df, name) {
+  cols <- colnames(df)
+  matches <- grep(name, cols, ignore.case = TRUE, value = TRUE)
+  if (length(matches) == 1) {
+    return(matches)
+  }
+  if (length(matches) > 1) {
+    stop(sprintf("Ambiguous: multiple columns match `%s`: %s", name, paste(matches, collapse = ", ")), call. = FALSE)
+  }
+  stop(sprintf("Sample file must contain a `%s` column. Found columns: %s", name, paste(cols, collapse = ", ")), call. = FALSE)
+}
+
+main <- function(args = commandArgs(trailingOnly = TRUE)) {
+  if (length(args) < 2 || length(args) > 3) {
+    stop("Usage: combat-ref <count_matrix_file> <sample_info_file> [output_file]", call. = FALSE)
+  }
+
+  count_file <- args[[1]]
+  sample_file <- args[[2]]
+  output_file <- if (length(args) == 3) args[[3]] else sub("\\.mat$", "_corrected.mat", count_file)
+
+  if (!file.exists(count_file)) {
+    stop(sprintf("Count matrix file not found: %s", count_file), call. = FALSE)
+  }
+  if (!file.exists(sample_file)) {
+    stop(sprintf("Sample info file not found: %s", sample_file), call. = FALSE)
+  }
+
+  load_combatrefql()
+
+  counts <- utils::read.csv(count_file, header = TRUE, sep = "\t", row.names = 1, as.is = TRUE)
+  counts <- as.matrix(counts)
+  storage.mode(counts) <- "numeric"
+
+  samples <- utils::read.csv(sample_file, row.names = 1, header = TRUE, as.is = TRUE)
+  batch_col <- find_column(samples, "batch")
+  group_col <- grep("group|condition", colnames(samples), ignore.case = TRUE, value = TRUE)
+  group <- if (length(group_col) == 1) samples[[group_col]] else NULL
+
+  fit <- combatrefql::combat_ref(
+    counts = counts,
+    batch = samples[[batch_col]],
+    group = group
+  )
+
+  utils::write.table(
+    fit$adjusted_counts,
+    file = output_file,
+    col.names = TRUE,
+    row.names = TRUE,
+    sep = "\t",
+    quote = FALSE
+  )
+  message("Reference batch: ", fit$reference_batch)
+  message("Corrected counts written to: ", output_file)
+}
+
+tryCatch(main(), error = function(e) {
+  message("Error: ", conditionMessage(e))
+  quit(status = 1)
+})
