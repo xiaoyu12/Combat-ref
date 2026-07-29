@@ -1,4 +1,10 @@
 # Correct batch effects for RNA-seq count data using a negative binomial distribution
+# Upstream-derived ComBat-ref statistical implementation.
+#
+# Adapted from the ComBat-ref research implementation by Xiaoyu Zhang and
+# collaborators. Redistribution terms for the upstream-derived implementation
+# require manual clarification; see LICENSE_NOTES.md.
+#
 # Adjust count towards the reference batch with minimum estimated dispersion
 
 #' @param counts Raw count matrix from genomic studies (dimensions gene x sample) 

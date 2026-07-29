@@ -1,0 +1,13 @@
+Provisional licensing notice for combatrefql
+
+This repository contains newly written R-package wrapper code and
+upstream-derived statistical code adapted from the ComBat-ref research
+implementation.
+
+No explicit upstream license for the original ComBat-ref repository was found
+during local inspection of this checkout or the upstream GitHub repository file
+listing. Redistribution terms for upstream-derived code therefore require manual
+clarification before public release.
+
+This file is not an open-source license grant for the upstream-derived
+statistical implementation.

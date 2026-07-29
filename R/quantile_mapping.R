@@ -1,4 +1,8 @@
 ####  Expand a vector into matrix (columns as the original vector)
+# Upstream-derived helper functions adapted from the ComBat-ref/ComBat-seq
+# research implementation by Xiaoyu Zhang and collaborators. See
+# LICENSE_NOTES.md for provisional licensing status.
+
 vec2mat <- function(vec, n_times){
   return(matrix(rep(vec, n_times), ncol=n_times, byrow=FALSE))
 }
@@ -69,6 +73,5 @@ match_quantiles <- function(counts_sub, old_mu, old_phi, new_mu, new_phi, keep_z
 
   return(new_counts_sub)
 }
-
 
 
