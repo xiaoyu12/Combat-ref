@@ -8,6 +8,13 @@
 \description{
 Development package for the original ComBat-ref correction algorithm.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://thokas99.github.io/ComBat-refQL/}
+}
+
+}
 \author{
 \strong{Maintainer}: Thomas Sirchi \email{thomasirchi@gmail.com}
 
