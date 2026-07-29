@@ -10,3 +10,6 @@
 ^development$
 ^LICENSE_NOTES\.md$
 ^validation$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
