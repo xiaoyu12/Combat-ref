@@ -8,4 +8,5 @@
 ^.*\.rds$
 ^.*\.RData$
 ^development$
+^LICENSE_NOTES\.md$
 ^validation$

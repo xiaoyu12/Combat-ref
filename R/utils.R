@@ -7,4 +7,5 @@
 #' @importFrom edgeR DGEList estimateGLMCommonDisp estimateGLMTagwiseDisp glmFit glmFit.default
 #' @importFrom matrixStats rowMaxs
 #' @importFrom stats dnbinom model.matrix pnbinom qnbinom
+#' @importFrom utils capture.output
 "_PACKAGE"

@@ -75,7 +75,7 @@ combat_ref <- function(counts, batch, group = NULL, reference_batch = NULL,
     cli::cli_alert_info("Fitting the baseline ComBat-ref negative-binomial model")
   }
 
-  legacy_output <- capture.output({
+  utils::capture.output({
     adjusted <- ComBat_ref(
       counts = validated$counts,
       batch = validated$batch,
