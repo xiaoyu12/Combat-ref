@@ -31,11 +31,41 @@ test_that("combat_ref is deterministic", {
 test_that("combat_ref is silent by default in noninteractive calls and verbose on request", {
   fixture <- combatrefql_legacy_fixtures()[["numeric_balanced"]]
 
+  expect_silent(combat_ref(fixture$counts, fixture$batch, fixture$group))
   expect_silent(combat_ref(fixture$counts, fixture$batch, fixture$group, verbose = FALSE))
   expect_message(
     combat_ref(fixture$counts, fixture$batch, fixture$group, verbose = TRUE),
     "Validating input data"
   )
+})
+
+test_that("README quick-start example runs", {
+  counts <- matrix(
+    c(10, 12, 30, 33, 8, 9, 28, 31,
+      4, 5, 14, 16, 3, 4, 15, 17,
+      50, 55, 120, 130, 48, 52, 125, 135,
+      1, 2, 4, 5, 1, 2, 5, 6),
+    nrow = 4,
+    byrow = TRUE,
+    dimnames = list(paste0("gene", 1:4), paste0("sample", 1:8))
+  )
+  metadata <- data.frame(
+    batch = rep(c("batch_A", "batch_B"), each = 2, times = 2),
+    condition = rep(c("control", "treated"), each = 4),
+    row.names = colnames(counts)
+  )
+
+  fit <- combat_ref(
+    counts = counts,
+    batch = metadata$batch,
+    group = metadata$condition,
+    verbose = FALSE
+  )
+  adjusted_counts <- fit$adjusted_counts
+
+  expect_s3_class(fit, "combatref_result")
+  expect_equal(dim(adjusted_counts), dim(counts))
+  expect_equal(dimnames(adjusted_counts), dimnames(counts))
 })
 
 test_that("keep_model controls model details", {

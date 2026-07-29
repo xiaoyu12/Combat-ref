@@ -43,6 +43,12 @@ test_that("CLI shows help", {
   expect_true(any(grepl("--metadata", out, fixed = TRUE)))
 })
 
+test_that("CLI shows version", {
+  out <- run_cli("--version")
+  expect_null(attr(out, "status"))
+  expect_true(any(grepl("0.0.0.9000", out, fixed = TRUE)))
+})
+
 test_that("CLI validates missing files", {
   out <- run_cli(c(
     "--counts", "missing.tsv",
