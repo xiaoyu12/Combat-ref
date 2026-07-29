@@ -9,77 +9,164 @@ load_combatrefql <- function() {
   script_path <- if (length(file_arg)) {
     normalizePath(sub("^--file=", "", file_arg[[1]]), mustWork = FALSE)
   } else {
-    tryCatch(normalizePath(sys.frame(1)$ofile), error = function(e) NA_character_)
+    NA_character_
   }
-  if (!is.na(script_path)) {
-    repo_root <- normalizePath(file.path(dirname(script_path), "..", ".."), mustWork = FALSE)
-    if (file.exists(file.path(repo_root, "DESCRIPTION")) && requireNamespace("devtools", quietly = TRUE)) {
-      devtools::load_all(repo_root, quiet = TRUE)
-      return(invisible(TRUE))
-    }
+  repo_root <- normalizePath(file.path(dirname(script_path), "..", ".."), mustWork = FALSE)
+  if (file.exists(file.path(repo_root, "DESCRIPTION")) && requireNamespace("devtools", quietly = TRUE)) {
+    devtools::load_all(repo_root, quiet = TRUE)
+    return(invisible(TRUE))
   }
 
   stop("Package `combatrefql` is not installed. Install it or run this script from the package checkout.", call. = FALSE)
 }
 
-find_column <- function(df, name) {
-  cols <- colnames(df)
-  matches <- grep(name, cols, ignore.case = TRUE, value = TRUE)
-  if (length(matches) == 1) {
-    return(matches)
+usage <- function() {
+  paste(
+    "Usage:",
+    "  combat-ref --counts counts.tsv --metadata metadata.csv --batch-column batch --output adjusted_counts.tsv [options]",
+    "",
+    "Options:",
+    "  --counts PATH             Tab-separated count matrix, genes in rows and samples in columns.",
+    "  --metadata PATH           CSV metadata with sample IDs in row names or a sample column.",
+    "  --batch-column NAME       Metadata column containing batch labels.",
+    "  --group-column NAME       Optional metadata column containing biological groups.",
+    "  --reference-batch NAME    Optional reference batch. Defaults to automatic legacy selection.",
+    "  --output PATH             Output TSV for adjusted counts.",
+    "  --verbose                 Print progress messages.",
+    "  --quiet                   Suppress non-error output.",
+    "  --help                    Show this help.",
+    "  --version                 Show package version.",
+    sep = "\n"
+  )
+}
+
+parse_args <- function(args) {
+  out <- list(verbose = FALSE, quiet = FALSE)
+  value_flags <- c("--counts", "--metadata", "--batch-column", "--group-column", "--reference-batch", "--output")
+  names(value_flags) <- sub("^--", "", value_flags)
+
+  i <- 1L
+  while (i <= length(args)) {
+    arg <- args[[i]]
+    if (arg %in% c("--help", "-h")) {
+      out$help <- TRUE
+    } else if (arg == "--version") {
+      out$version <- TRUE
+    } else if (arg == "--verbose") {
+      out$verbose <- TRUE
+    } else if (arg == "--quiet") {
+      out$quiet <- TRUE
+    } else if (arg %in% value_flags) {
+      if (i == length(args) || startsWith(args[[i + 1L]], "--")) {
+        cli::cli_abort("{.arg {arg}} requires a value.")
+      }
+      out[[sub("^--", "", arg)]] <- args[[i + 1L]]
+      i <- i + 1L
+    } else {
+      cli::cli_abort("Unknown argument: {.arg {arg}}")
+    }
+    i <- i + 1L
   }
-  if (length(matches) > 1) {
-    stop(sprintf("Ambiguous: multiple columns match `%s`: %s", name, paste(matches, collapse = ", ")), call. = FALSE)
+  out
+}
+
+require_option <- function(opts, name) {
+  if (is.null(opts[[name]]) || !nzchar(opts[[name]])) {
+    cli::cli_abort("Missing required option {.arg --{name}}.")
   }
-  stop(sprintf("Sample file must contain a `%s` column. Found columns: %s", name, paste(cols, collapse = ", ")), call. = FALSE)
+}
+
+read_metadata <- function(path) {
+  meta <- utils::read.csv(path, row.names = 1, check.names = FALSE, stringsAsFactors = FALSE)
+  if (is.null(rownames(meta)) || anyNA(rownames(meta)) || any(rownames(meta) == "")) {
+    cli::cli_abort("Metadata must contain non-missing sample identifiers in the first column.")
+  }
+  if (anyDuplicated(rownames(meta))) {
+    cli::cli_abort("Metadata sample identifiers must be unique.")
+  }
+  meta
+}
+
+align_metadata <- function(metadata, sample_names, quiet = FALSE) {
+  if (identical(rownames(metadata), sample_names)) {
+    return(metadata)
+  }
+  if (!setequal(rownames(metadata), sample_names)) {
+    cli::cli_abort("Metadata sample identifiers must match count matrix column names.")
+  }
+  if (isTRUE(quiet)) {
+    cli::cli_abort("Metadata row order differs from count matrix columns; rerun without {.arg --quiet} to allow reported reordering.")
+  }
+  cli::cli_alert_info("Reordering metadata rows to match count matrix columns")
+  metadata[sample_names, , drop = FALSE]
 }
 
 main <- function(args = commandArgs(trailingOnly = TRUE)) {
-  if (length(args) < 2 || length(args) > 3) {
-    stop("Usage: combat-ref <count_matrix_file> <sample_info_file> [output_file]", call. = FALSE)
-  }
-
-  count_file <- args[[1]]
-  sample_file <- args[[2]]
-  output_file <- if (length(args) == 3) args[[3]] else sub("\\.mat$", "_corrected.mat", count_file)
-
-  if (!file.exists(count_file)) {
-    stop(sprintf("Count matrix file not found: %s", count_file), call. = FALSE)
-  }
-  if (!file.exists(sample_file)) {
-    stop(sprintf("Sample info file not found: %s", sample_file), call. = FALSE)
-  }
-
+  opts <- parse_args(args)
   load_combatrefql()
 
-  counts <- utils::read.csv(count_file, header = TRUE, sep = "\t", row.names = 1, as.is = TRUE)
+  if (isTRUE(opts$help)) {
+    cat(usage(), "\n")
+    return(invisible(0L))
+  }
+  if (isTRUE(opts$version)) {
+    cat(utils::packageDescription("combatrefql", fields = "Version"), "\n")
+    return(invisible(0L))
+  }
+
+  for (name in c("counts", "metadata", "batch-column", "output")) {
+    require_option(opts, name)
+  }
+  if (isTRUE(opts$verbose) && isTRUE(opts$quiet)) {
+    cli::cli_abort("Use only one of {.arg --verbose} or {.arg --quiet}.")
+  }
+  for (name in c("counts", "metadata")) {
+    if (!file.exists(opts[[name]])) {
+      cli::cli_abort("Input file not found for {.arg --{name}}: {.path {opts[[name]]}}")
+    }
+  }
+
+  counts <- utils::read.csv(opts$counts, sep = "\t", row.names = 1, check.names = FALSE)
   counts <- as.matrix(counts)
   storage.mode(counts) <- "numeric"
 
-  samples <- utils::read.csv(sample_file, row.names = 1, header = TRUE, as.is = TRUE)
-  batch_col <- find_column(samples, "batch")
-  group_col <- grep("group|condition", colnames(samples), ignore.case = TRUE, value = TRUE)
-  group <- if (length(group_col) == 1) samples[[group_col]] else NULL
+  metadata <- align_metadata(read_metadata(opts$metadata), colnames(counts), quiet = opts$quiet)
+  batch_column <- opts[["batch-column"]]
+  group_column <- opts[["group-column"]]
+  if (!(batch_column %in% colnames(metadata))) {
+    cli::cli_abort("Metadata does not contain batch column {.val {batch_column}}.")
+  }
+  if (!is.null(group_column) && !(group_column %in% colnames(metadata))) {
+    cli::cli_abort("Metadata does not contain group column {.val {group_column}}.")
+  }
 
   fit <- combatrefql::combat_ref(
     counts = counts,
-    batch = samples[[batch_col]],
-    group = group
+    batch = metadata[[batch_column]],
+    group = if (is.null(group_column)) NULL else metadata[[group_column]],
+    reference_batch = opts[["reference-batch"]],
+    verbose = isTRUE(opts$verbose) && !isTRUE(opts$quiet)
   )
 
   utils::write.table(
     fit$adjusted_counts,
-    file = output_file,
+    file = opts$output,
     col.names = TRUE,
     row.names = TRUE,
     sep = "\t",
     quote = FALSE
   )
-  message("Reference batch: ", fit$reference_batch)
-  message("Corrected counts written to: ", output_file)
+  if (!isTRUE(opts$quiet)) {
+    cli::cli_alert_success("Selected reference batch: {fit$reference_batch}")
+    cli::cli_alert_success("Wrote adjusted counts: {.path {opts$output}}")
+  }
+  invisible(0L)
 }
 
-tryCatch(main(), error = function(e) {
-  message("Error: ", conditionMessage(e))
-  quit(status = 1)
-})
+tryCatch(
+  main(),
+  error = function(e) {
+    cli::cli_alert_danger("{conditionMessage(e)}")
+    quit(status = 1L)
+  }
+)
