@@ -7,3 +7,5 @@
 ^.*\.csv$
 ^.*\.rds$
 ^.*\.RData$
+^development$
+^validation$
