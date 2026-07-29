@@ -1,0 +1,41 @@
+name: R-CMD-check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  R-CMD-check:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        r: [release]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.r }}
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          cache: true
+          extra-packages: |
+            any::devtools
+            any::rcmdcheck
+            bioc::edgeR
+          needs: check
+
+      - name: Document
+        run: Rscript -e 'devtools::document()'
+
+      - name: Test
+        run: Rscript -e 'devtools::test()'
+
+      - name: Check
+        run: Rscript -e 'devtools::check(document = FALSE, manual = FALSE)'

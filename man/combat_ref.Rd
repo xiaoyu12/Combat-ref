@@ -10,7 +10,8 @@ combat_ref(
   group = NULL,
   reference_batch = NULL,
   lib_size = NULL,
-  return_model = FALSE
+  verbose = interactive(),
+  keep_model = FALSE
 )
 }
 \arguments{
@@ -28,8 +29,12 @@ automatic minimum-dispersion selection.}
 \item{lib_size}{Optional positive finite library sizes aligned with samples.
 \code{NULL} reproduces the legacy edgeR library-size behavior.}
 
-\item{return_model}{Logical. If \code{TRUE}, include selected internal matrices in
-\code{diagnostics}. Large edgeR fit objects are not returned.}
+\item{verbose}{Logical. If \code{TRUE}, print concise progress messages with
+\code{cli}. Defaults to \code{interactive()}.}
+
+\item{keep_model}{Logical. If \code{TRUE}, include selected intermediate model
+quantities under the \code{model} field. Large edgeR fit objects are not
+returned.}
 }
 \value{
 A \code{combatref_result} object. Use \verb{$adjusted_counts} to access the

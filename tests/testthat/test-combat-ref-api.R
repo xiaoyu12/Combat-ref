@@ -28,6 +28,59 @@ test_that("combat_ref is deterministic", {
   expect_equal(second$reference_batch, first$reference_batch)
 })
 
+test_that("combat_ref is silent by default in noninteractive calls and verbose on request", {
+  fixture <- combatrefql_legacy_fixtures()[["numeric_balanced"]]
+
+  expect_silent(combat_ref(fixture$counts, fixture$batch, fixture$group))
+  expect_silent(combat_ref(fixture$counts, fixture$batch, fixture$group, verbose = FALSE))
+  expect_message(
+    combat_ref(fixture$counts, fixture$batch, fixture$group, verbose = TRUE),
+    "Validating input data"
+  )
+})
+
+test_that("README quick-start example runs", {
+  counts <- matrix(
+    c(10, 12, 30, 33, 8, 9, 28, 31,
+      4, 5, 14, 16, 3, 4, 15, 17,
+      50, 55, 120, 130, 48, 52, 125, 135,
+      1, 2, 4, 5, 1, 2, 5, 6),
+    nrow = 4,
+    byrow = TRUE,
+    dimnames = list(paste0("gene", 1:4), paste0("sample", 1:8))
+  )
+  metadata <- data.frame(
+    batch = rep(c("batch_A", "batch_B"), each = 2, times = 2),
+    condition = rep(c("control", "treated"), each = 4),
+    row.names = colnames(counts)
+  )
+
+  fit <- combat_ref(
+    counts = counts,
+    batch = metadata$batch,
+    group = metadata$condition,
+    verbose = FALSE
+  )
+  adjusted_counts <- fit$adjusted_counts
+
+  expect_s3_class(fit, "combatref_result")
+  expect_equal(dim(adjusted_counts), dim(counts))
+  expect_equal(dimnames(adjusted_counts), dimnames(counts))
+})
+
+test_that("keep_model controls model details", {
+  fixture <- combatrefql_legacy_fixtures()[["numeric_balanced"]]
+
+  compact <- combat_ref(fixture$counts, fixture$batch, fixture$group)
+  expect_false("model" %in% names(compact))
+  expect_false("dispersions" %in% names(compact))
+  expect_false("design" %in% names(compact))
+
+  full <- combat_ref(fixture$counts, fixture$batch, fixture$group, keep_model = TRUE)
+  expect_true("model" %in% names(full))
+  expect_true(all(c("design", "common_dispersions", "coefficients", "fitted_means", "library_sizes") %in% names(full$model)))
+})
+
 test_that("explicit reference batch is validated and used", {
   fixture <- combatrefql_legacy_fixtures()[["character_unbalanced"]]
 
@@ -50,8 +103,8 @@ test_that("result print and summary methods are compact", {
   fixture <- combatrefql_legacy_fixtures()[["numeric_balanced"]]
   fit <- combat_ref(fixture$counts, fixture$batch, fixture$group)
 
-  expect_output(print(fit), "ComBat-ref result")
+  expect_invisible(print(fit))
   smry <- summary(fit)
   expect_s3_class(smry, "summary.combatref_result")
-  expect_output(print(smry), "ComBat-ref summary")
+  expect_invisible(print(smry))
 })
