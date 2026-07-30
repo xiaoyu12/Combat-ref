@@ -15,7 +15,8 @@ Depends:
     R (>= 4.1)
 Imports:
     cli,
-    edgeR,
+    edgeR (>= 4.2.0),
+    jsonlite,
     stats,
     utils
 Suggests:

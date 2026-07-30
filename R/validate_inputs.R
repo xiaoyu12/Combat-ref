@@ -1,8 +1,5 @@
-validate_combat_inputs <- function(counts, batch, group = NULL, covariates = NULL,
-                                   reference_batch = NULL, lib_size = NULL) {
-  if (!is.matrix(counts)) {
-    counts <- as.matrix(counts)
-  }
+validate_model_input <- function(counts, batch, group = NULL, covariates = NULL,
+                                 reference_batch = NULL, lib_size = NULL) {
   if (!is.numeric(counts)) {
     cli::cli_abort(c(
       "x" = "{.arg counts} must contain raw, non-negative integer counts.",
@@ -41,7 +38,7 @@ validate_combat_inputs <- function(counts, batch, group = NULL, covariates = NUL
   if (anyNA(batch)) {
     cli::cli_abort("{.arg batch} must not contain missing values.")
   }
-  batch <- factor(batch)
+  batch <- droplevels(factor(batch))
   if (nlevels(batch) < 2) {
     cli::cli_abort("{.arg batch} must contain at least two batches.")
   }
@@ -54,7 +51,7 @@ validate_combat_inputs <- function(counts, batch, group = NULL, covariates = NUL
     if (anyNA(group)) {
       cli::cli_abort("{.arg group} must not contain missing values.")
     }
-    group <- factor(group)
+    group <- droplevels(factor(group))
     if (nlevels(group) == 1L) group <- NULL
   }
 
@@ -97,6 +94,8 @@ validate_combat_inputs <- function(counts, batch, group = NULL, covariates = NUL
     design = design
   )
 }
+
+validate_combat_inputs <- validate_model_input
 
 validate_sample_vector <- function(x, counts, name) {
   if (is.null(x)) {

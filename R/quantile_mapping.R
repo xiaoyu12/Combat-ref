@@ -18,10 +18,12 @@ match_quantiles <- function(counts_sub, old_mu, old_phi, new_mu, new_phi,
                       1 - .Machine$double.eps)
   mapped <- stats::qnbinom(probability, mu = new_mu, size = 1 / new_phi)
   if (keep_zero) mapped[counts_sub == 0] <- 0
-  storage.mode(mapped) <- "integer"
+  storage.mode(mapped) <- "double"
+  valid <- is.finite(mapped) & mapped >= 0 & mapped == floor(mapped)
   attr(mapped, "tail_events") <- sum(
     probability <= .Machine$double.xmin |
       probability >= 1 - .Machine$double.eps
   )
+  attr(mapped, "mapping_valid") <- apply(valid, 1L, all)
   mapped
 }

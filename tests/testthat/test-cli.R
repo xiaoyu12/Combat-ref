@@ -41,6 +41,73 @@ test_that("CLI shows help", {
   expect_null(attr(out, "status"))
   expect_true(any(grepl("--counts", out, fixed = TRUE)))
   expect_true(any(grepl("--metadata", out, fixed = TRUE)))
+  expect_true(any(grepl("--validate-only", out, fixed = TRUE)))
+  expect_true(any(grepl("Exit codes", out, fixed = TRUE)))
+})
+
+test_that("CLI normal output is structured and no-color is plain text", {
+  fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
+  files <- write_cli_fixture(tempdir(), fixture)
+  out <- run_cli(c("--counts", files$counts, "--metadata", files$metadata,
+    "--batch-column", "batch", "--output", tempfile(), "--no-color"))
+  expect_null(attr(out, "status"))
+  expect_true(all(vapply(c("Input", "Configuration", "Design", "Normalization",
+    "Reference selection", "Correction", "Output", "Completed"),
+    function(x) any(grepl(x, out, fixed = TRUE)), logical(1))))
+  expect_false(any(grepl("\\033", out)))
+})
+
+test_that("CLI writes JSON diagnostics, gene status, and log", {
+  fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
+  files <- write_cli_fixture(tempdir(), fixture)
+  paths <- c(tempfile("out", fileext = ".tsv"), tempfile("diag", fileext = ".json"),
+             tempfile("status", fileext = ".tsv"), tempfile("log", fileext = ".log"))
+  out <- run_cli(c("--counts", files$counts, "--metadata", files$metadata,
+    "--batch-column", "batch", "--output", paths[1],
+    "--diagnostics-json", paths[2], "--gene-status", paths[3],
+    "--log-file", paths[4], "--no-color"))
+  expect_null(attr(out, "status"))
+  expect_true(all(file.exists(paths)))
+  json <- jsonlite::read_json(paths[2], simplifyVector = TRUE)
+  expect_equal(json$reference_selection_frequency, NULL)
+  expect_true("input_actions" %in% names(json))
+  expect_match(paste(readLines(paths[4]), collapse = "\n"), "Completed")
+})
+
+test_that("CLI validate-only performs no correction write", {
+  fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
+  files <- write_cli_fixture(tempdir(), fixture)
+  output <- tempfile()
+  out <- run_cli(c("--counts", files$counts, "--metadata", files$metadata,
+    "--batch-column", "batch", "--validate-only", "--no-color"))
+  expect_null(attr(out, "status"))
+  expect_true(any(grepl("Validation completed", out)))
+  expect_false(file.exists(output))
+})
+
+test_that("CLI uses stable input and design exit codes", {
+  missing <- run_cli(c("--counts", "missing.tsv", "--metadata", "missing.csv",
+    "--batch-column", "batch", "--output", tempfile()))
+  expect_equal(attr(missing, "status"), 2L)
+
+  fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
+  tmp <- tempdir(); files <- write_cli_fixture(tmp, fixture)
+  meta <- utils::read.csv(files$metadata, row.names = 1, check.names = FALSE)
+  meta$condition <- meta$batch
+  utils::write.csv(meta, files$metadata, quote = FALSE)
+  confounded <- run_cli(c("--counts", files$counts, "--metadata", files$metadata,
+    "--batch-column", "batch", "--group-column", "condition", "--output", tempfile()))
+  expect_equal(attr(confounded, "status"), 3L)
+})
+
+test_that("CLI classifies preparation failures as input errors", {
+  fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
+  fixture$counts[1, 1] <- fixture$counts[1, 1] + 0.25
+  files <- write_cli_fixture(tempdir(), fixture)
+  out <- run_cli(c("--counts", files$counts, "--metadata", files$metadata,
+    "--batch-column", "batch", "--output", tempfile()))
+  expect_equal(attr(out, "status"), 2L)
+  expect_true(any(grepl("fractional", out, ignore.case = TRUE)))
 })
 
 test_that("CLI shows version", {
@@ -56,7 +123,7 @@ test_that("CLI validates missing files", {
     "--batch-column", "batch",
     "--output", tempfile()
   ))
-  expect_equal(attr(out, "status"), 1L)
+  expect_equal(attr(out, "status"), 2L)
   expect_true(any(grepl("Input file not found", out)))
 })
 
@@ -72,12 +139,12 @@ test_that("CLI delegates to package implementation", {
     "--batch-column", "batch",
     "--group-column", "condition",
     "--output", output_file,
-    "--verbose"
+    "--no-color"
   ))
 
   expect_null(attr(out, "status"))
   expect_true(file.exists(output_file))
-  expect_true(any(grepl("Selected reference batch", out)))
+  expect_true(any(grepl("Selected reference", out)))
 
   cli_counts <- as.matrix(utils::read.csv(output_file, sep = "\t", row.names = 1, check.names = FALSE))
   storage.mode(cli_counts) <- "numeric"
@@ -119,7 +186,7 @@ test_that("CLI reports metadata reordering and rejects silent reordering", {
     "--verbose"
   ))
   expect_null(attr(out, "status"))
-  expect_true(any(grepl("Reordering metadata rows", out)))
+  expect_true(any(grepl("different order", out)))
 
   quiet_out <- run_cli(c(
     "--counts", files$counts,
@@ -128,6 +195,6 @@ test_that("CLI reports metadata reordering and rejects silent reordering", {
     "--output", tempfile(),
     "--quiet"
   ))
-  expect_equal(attr(quiet_out, "status"), 1L)
-  expect_true(any(grepl("row order differs", quiet_out)))
+  expect_null(attr(quiet_out, "status"))
+  expect_length(quiet_out, 0)
 })
