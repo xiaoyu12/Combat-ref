@@ -17,7 +17,7 @@ distribution parameter.
 ## Install
 
 ```r
-remotes::install_github("Thokas99/ComBat-refQL")
+pak::pak("Thokas99/ComBat-refQL")
 ```
 
 ## Quick start
