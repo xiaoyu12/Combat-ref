@@ -1,196 +1,213 @@
 #!/usr/bin/env Rscript
 
 load_combatrefql <- function() {
-  if (requireNamespace("combatrefql", quietly = TRUE)) {
-    return(invisible(TRUE))
-  }
-
+  if (requireNamespace("combatrefql", quietly = TRUE)) return(invisible(TRUE))
   file_arg <- grep("^--file=", commandArgs(FALSE), value = TRUE)
-  script_path <- if (length(file_arg)) {
-    normalizePath(sub("^--file=", "", file_arg[[1]]), mustWork = FALSE)
-  } else {
-    NA_character_
+  script_path <- if (length(file_arg)) normalizePath(sub("^--file=", "", file_arg[[1]]), mustWork = FALSE) else NA_character_
+  root <- normalizePath(file.path(dirname(script_path), "..", ".."), mustWork = FALSE)
+  if (file.exists(file.path(root, "DESCRIPTION")) && requireNamespace("devtools", quietly = TRUE)) {
+    devtools::load_all(root, quiet = TRUE); return(invisible(TRUE))
   }
-  repo_root <- normalizePath(file.path(dirname(script_path), "..", ".."), mustWork = FALSE)
-  if (file.exists(file.path(repo_root, "DESCRIPTION")) && requireNamespace("devtools", quietly = TRUE)) {
-    devtools::load_all(repo_root, quiet = TRUE)
-    return(invisible(TRUE))
-  }
-
-  stop("Package `combatrefql` is not installed. Install it or run this script from the package checkout.", call. = FALSE)
+  stop("Package `combatrefql` is not installed.", call. = FALSE)
 }
 
-usage <- function() {
-  paste(
-    "Usage:",
-    "  combat-ref --counts counts.tsv --metadata metadata.csv --batch-column batch --output adjusted_counts.tsv [options]",
-    "",
-    "Options:",
-    "  --counts PATH             Tab-separated count matrix, genes in rows and samples in columns.",
-    "  --metadata PATH           CSV metadata with sample IDs in row names or a sample column.",
-    "  --batch-column NAME       Metadata column containing batch labels.",
-    "  --group-column NAME       Optional metadata column containing biological groups.",
-    "  --reference-batch NAME    Optional reference batch.",
-    "  --normalization METHOD    TMMwsp (default), TMM, or none.",
-    "  --fit-method METHOD       baseline (default) or ql_assisted.",
-    "  --quantile-method METHOD  midp (default), upper, or randomized.",
-    "  --seed INTEGER            Required for randomized mapping.",
-    "  --diagnostics PATH        Optional diagnostics TSV.",
-    "  --output PATH             Output TSV for adjusted counts.",
-    "  --verbose                 Print progress messages.",
-    "  --quiet                   Suppress non-error output.",
-    "  --help                    Show this help.",
-    "  --version                 Show package version.",
-    sep = "\n"
-  )
-}
+usage <- function() paste(
+  "Usage:",
+  "  combat-ref --counts counts.tsv --metadata metadata.csv --batch-column batch --output adjusted.tsv [options]",
+  "", "Core options:",
+  "  --group-column NAME         Optional biological group column.",
+  "  --reference-batch NAME      Explicit reference; default is automatic.",
+  "  --normalization METHOD      TMMwsp (default), TMM, or none.",
+  "  --fit-method METHOD         baseline or ql_assisted.",
+  "  --quantile-method METHOD    midp, upper, or randomized.",
+  "  --fractional-counts POLICY  error (default) or round.",
+  "  --duplicate-genes POLICY    error (default) or sum.",
+  "  --input-scale SCALE          counts (default); normalized scales are rejected.",
+  "  --seed INTEGER              Required for randomized mapping.",
+  "", "Output and reporting:",
+  "  --diagnostics-json PATH     Complete machine-readable diagnostics.",
+  "  --gene-status PATH          Gene-level status TSV.",
+  "  --log-file PATH             Plain-text run log.",
+  "  --validate-only             Validate inputs/design without correction.",
+  "  --verbose                   Additional details.",
+  "  --quiet                     Errors only.",
+  "  --no-color                  Disable ANSI colors.",
+  "  --help                      Show help.",
+  "  --version                   Show version.",
+  "", "Exit codes: 0 success; 2 input; 3 design; 4 fit/mapping; 5 output.", sep = "\n")
 
 parse_args <- function(args) {
-  out <- list(verbose = FALSE, quiet = FALSE, normalization = "TMMwsp",
-              `fit-method` = "baseline", `quantile-method` = "midp")
-  value_flags <- c("--counts", "--metadata", "--batch-column", "--group-column",
-                   "--reference-batch", "--normalization", "--fit-method",
-                   "--quantile-method", "--seed", "--diagnostics", "--output")
-  names(value_flags) <- sub("^--", "", value_flags)
-
+  out <- list(normalization = "TMMwsp", `fit-method` = "baseline",
+    `quantile-method` = "midp", `fractional-counts` = "error",
+    `duplicate-genes` = "error", `input-scale` = "counts", verbose = FALSE, quiet = FALSE,
+    `no-color` = FALSE, `validate-only` = FALSE, help = FALSE, version = FALSE)
+  flags <- c("--help", "-h", "--version", "--verbose", "--quiet", "--no-color", "--validate-only")
+  values <- c("--counts", "--metadata", "--batch-column", "--group-column",
+    "--reference-batch", "--normalization", "--fit-method", "--quantile-method",
+    "--fractional-counts", "--duplicate-genes", "--input-scale", "--seed", "--output",
+    "--diagnostics-json", "--gene-status", "--log-file")
   i <- 1L
   while (i <= length(args)) {
     arg <- args[[i]]
-    if (arg %in% c("--help", "-h")) {
-      out$help <- TRUE
-    } else if (arg == "--version") {
-      out$version <- TRUE
-    } else if (arg == "--verbose") {
-      out$verbose <- TRUE
-    } else if (arg == "--quiet") {
-      out$quiet <- TRUE
-    } else if (arg %in% value_flags) {
-      if (i == length(args) || startsWith(args[[i + 1L]], "--")) {
-        cli::cli_abort("{.arg {arg}} requires a value.")
-      }
-      out[[sub("^--", "", arg)]] <- args[[i + 1L]]
-      i <- i + 1L
-    } else {
-      cli::cli_abort("Unknown argument: {.arg {arg}}")
-    }
+    if (arg %in% flags) out[[sub("^--", "", if (arg == "-h") "--help" else arg)]] <- TRUE
+    else if (arg %in% values) {
+      if (i == length(args) || startsWith(args[[i + 1L]], "--")) stop(arg, " requires a value.", call. = FALSE)
+      out[[sub("^--", "", arg)]] <- args[[i + 1L]]; i <- i + 1L
+    } else stop("Unknown argument: ", arg, call. = FALSE)
     i <- i + 1L
   }
   out
 }
 
-require_option <- function(opts, name) {
-  if (is.null(opts[[name]]) || !nzchar(opts[[name]])) {
-    cli::cli_abort("Missing required option {.arg --{name}}.")
-  }
+detect_separator <- function(path) {
+  base <- sub("\\.gz$", "", tolower(path)); ext <- tools::file_ext(base)
+  if (ext %in% c("tsv", "tab")) return(list(sep = "\t", format = "TSV"))
+  if (ext == "csv") return(list(sep = ",", format = "CSV"))
+  if (ext != "txt") stop("Unsupported file extension; use .tsv, .csv, .txt, or gzipped variants.", call. = FALSE)
+  con <- if (grepl("\\.gz$", path, ignore.case = TRUE)) gzfile(path, "rt") else file(path, "rt")
+  on.exit(close(con)); header <- readLines(con, n = 1L, warn = FALSE)
+  tabs <- lengths(regmatches(header, gregexpr("\t", header, fixed = TRUE)))
+  commas <- lengths(regmatches(header, gregexpr(",", header, fixed = TRUE)))
+  if ((tabs > 0) == (commas > 0)) stop("Ambiguous .txt delimiter; use a clear tab-only or comma-only header.", call. = FALSE)
+  if (tabs > 0) list(sep = "\t", format = "tab-delimited TXT") else list(sep = ",", format = "comma-delimited TXT")
 }
 
-read_metadata <- function(path) {
-  meta <- utils::read.csv(path, row.names = 1, check.names = FALSE, stringsAsFactors = FALSE)
-  if (is.null(rownames(meta)) || anyNA(rownames(meta)) || any(rownames(meta) == "")) {
-    cli::cli_abort("Metadata must contain non-missing sample identifiers in the first column.")
-  }
-  if (anyDuplicated(rownames(meta))) {
-    cli::cli_abort("Metadata sample identifiers must be unique.")
-  }
-  meta
+read_table_file <- function(path) {
+  format <- detect_separator(path)
+  con <- if (grepl("\\.gz$", path, ignore.case = TRUE)) gzfile(path, "rt") else path
+  value <- utils::read.table(con, header = TRUE, sep = format$sep, check.names = FALSE,
+    stringsAsFactors = FALSE, quote = "\"", comment.char = "", fill = FALSE)
+  list(value = value, format = format$format)
 }
 
-align_metadata <- function(metadata, sample_names, quiet = FALSE) {
-  if (identical(rownames(metadata), sample_names)) {
-    return(metadata)
-  }
-  if (!setequal(rownames(metadata), sample_names)) {
-    cli::cli_abort("Metadata sample identifiers must match count matrix column names.")
-  }
-  if (isTRUE(quiet)) {
-    cli::cli_abort("Metadata row order differs from count matrix columns; rerun without {.arg --quiet} to allow reported reordering.")
-  }
-  cli::cli_alert_info("Reordering metadata rows to match count matrix columns")
-  metadata[sample_names, , drop = FALSE]
+metadata_ids <- function(metadata) {
+  if (!ncol(metadata)) stop("Metadata has no columns.", call. = FALSE)
+  ids <- metadata[[1L]]
+  if (anyNA(ids) || any(!nzchar(as.character(ids))) || anyDuplicated(ids)) stop("Metadata first column must contain unique, non-missing sample IDs.", call. = FALSE)
+  metadata <- metadata[-1L]; rownames(metadata) <- as.character(ids); metadata
+}
+
+json_ready <- function(x) {
+  if (inherits(x, "table")) return(as.list(x))
+  if (is.data.frame(x)) return(x)
+  if (is.list(x)) return(lapply(x, json_ready))
+  if (inherits(x, "summaryDefault")) return(as.list(x))
+  x
 }
 
 main <- function(args = commandArgs(trailingOnly = TRUE)) {
-  opts <- parse_args(args)
-  load_combatrefql()
+  stage <<- "input"; written <- character(); started <- proc.time()[["elapsed"]]
+  opts <- parse_args(args); load_combatrefql()
+  if (opts$`no-color`) options(cli.num_colors = 1)
+  if (opts$help) { cat(usage(), "\n"); return(0L) }
+  if (opts$version) { cat(utils::packageDescription("combatrefql", fields = "Version"), "\n"); return(0L) }
+  if (opts$quiet && opts$verbose) stop("Use only one of --quiet and --verbose.", call. = FALSE)
+  required <- c("counts", "metadata", "batch-column")
+  if (!opts$`validate-only`) required <- c(required, "output")
+  missing <- required[vapply(required, function(x) is.null(opts[[x]]) || !nzchar(opts[[x]]), logical(1))]
+  if (length(missing)) stop("Missing required option(s): --", paste(missing, collapse = ", --"), call. = FALSE)
+  for (x in c("counts", "metadata")) if (!file.exists(opts[[x]])) stop("Input file not found: ", opts[[x]], call. = FALSE)
+  log_path <- opts$`log-file`
+  emit <- function(text = "") {
+    if (!opts$quiet) cat(text, "\n")
+    if (!is.null(log_path)) cat(gsub("\033\\[[0-9;]*m", "", text), "\n", file = log_path, append = TRUE)
+  }
+  emit(sprintf("ComBat-refQL %s", utils::packageDescription("combatrefql", fields = "Version")))
+  emit("Reference-batch RNA-seq count correction")
 
-  if (isTRUE(opts$help)) {
-    cat(usage(), "\n")
-    return(invisible(0L))
-  }
-  if (isTRUE(opts$version)) {
-    cat(utils::packageDescription("combatrefql", fields = "Version"), "\n")
-    return(invisible(0L))
+  read_start <- proc.time()[["elapsed"]]
+  counts_file <- read_table_file(opts$counts); metadata_file <- read_table_file(opts$metadata)
+  read_seconds <- proc.time()[["elapsed"]] - read_start
+  metadata <- metadata_ids(metadata_file$value)
+  batch_col <- opts$`batch-column`; group_col <- opts$`group-column`
+  if (!batch_col %in% names(metadata)) stop("Metadata does not contain batch column `", batch_col, "`.", call. = FALSE)
+  if (!is.null(group_col) && !group_col %in% names(metadata)) stop("Metadata does not contain group column `", group_col, "`.", call. = FALSE)
+  batch <- metadata[[batch_col]]; group <- if (is.null(group_col)) NULL else metadata[[group_col]]
+  names(batch) <- rownames(metadata); if (!is.null(group)) names(group) <- rownames(metadata)
+  emit("\nInput")
+  emit(sprintf("  Counts format                 %s", counts_file$format))
+  emit(sprintf("  Metadata format               %s", metadata_file$format))
+
+  stage <<- "design"
+  if (opts$`validate-only`) {
+    prepared <- combatrefql:::prepare_combat_inputs(counts_file$value, batch, group,
+      reference_batch = opts$`reference-batch`, fractional_counts = opts$`fractional-counts`,
+      duplicate_genes = opts$`duplicate-genes`, input_scale = opts$`input-scale`)
+    validated <- combatrefql:::validate_model_input(prepared$counts, prepared$batch,
+      prepared$group, prepared$covariates, prepared$reference_batch, NULL)
+    for (b in levels(validated$batch)) combatrefql:::build_within_batch_design(
+      validated$group, validated$covariates, validated$batch == b)
+    edgeR::normLibSizes(edgeR::DGEList(validated$counts), method = opts$normalization)
+    emit(sprintf("  Counts verified               %s genes x %s samples", nrow(validated$counts), ncol(validated$counts)))
+    emit(sprintf("  Full-rank design              %s x %s; rank %s", nrow(validated$design), ncol(validated$design), qr(validated$design)$rank))
+    emit("\nValidation completed; no corrected counts were written.")
+    return(0L)
   }
 
-  for (name in c("counts", "metadata", "batch-column", "output")) {
-    require_option(opts, name)
-  }
-  if (isTRUE(opts$verbose) && isTRUE(opts$quiet)) {
-    cli::cli_abort("Use only one of {.arg --verbose} or {.arg --quiet}.")
-  }
-  for (name in c("counts", "metadata")) {
-    if (!file.exists(opts[[name]])) {
-      cli::cli_abort("Input file not found for {.arg --{name}}: {.path {opts[[name]]}}")
-    }
-  }
-
-  counts <- utils::read.csv(opts$counts, sep = "\t", row.names = 1, check.names = FALSE)
-  counts <- as.matrix(counts)
-  storage.mode(counts) <- "numeric"
-
-  metadata <- align_metadata(read_metadata(opts$metadata), colnames(counts), quiet = opts$quiet)
-  batch_column <- opts[["batch-column"]]
-  group_column <- opts[["group-column"]]
-  if (!(batch_column %in% colnames(metadata))) {
-    cli::cli_abort("Metadata does not contain batch column {.val {batch_column}}.")
-  }
-  if (!is.null(group_column) && !(group_column %in% colnames(metadata))) {
-    cli::cli_abort("Metadata does not contain group column {.val {group_column}}.")
-  }
-
-  fit <- combatrefql::combat_ref(
-    counts = counts,
-    batch = metadata[[batch_column]],
-    group = if (is.null(group_column)) NULL else metadata[[group_column]],
-    reference_batch = opts[["reference-batch"]],
-    normalization = opts$normalization,
-    fit_method = opts[["fit-method"]],
-    quantile_method = opts[["quantile-method"]],
+  stage <<- "fit"
+  fit <- combatrefql::combat_ref(counts_file$value, batch, group,
+    reference_batch = opts$`reference-batch`, normalization = opts$normalization,
+    fit_method = opts$`fit-method`, quantile_method = opts$`quantile-method`,
+    fractional_counts = opts$`fractional-counts`, duplicate_genes = opts$`duplicate-genes`,
+    input_scale = opts$`input-scale`,
     seed = if (is.null(opts$seed)) NULL else as.integer(opts$seed),
-    verbose = isTRUE(opts$verbose) && !isTRUE(opts$quiet)
-  )
-  if (!is.null(opts$diagnostics)) {
-    diagnostic_table <- data.frame(
-      key = c("reference_batch", "normalization", "fit_method", "quantile_method",
-              "design_rank", "design_columns", "residual_df", "numerical_tail_events"),
-      value = c(fit$reference_batch, fit$normalization, fit$fit_method,
-                fit$quantile_method, fit$diagnostics$design_rank,
-                fit$diagnostics$design_columns, fit$diagnostics$residual_df,
-                fit$diagnostics$numerical_tail_events)
-    )
-    utils::write.table(diagnostic_table, opts$diagnostics, sep = "\t", quote = FALSE,
-                       row.names = FALSE)
-  }
+    verbosity = "quiet", keep_model = opts$verbose)
+  d <- fit$diagnostics
+  emit(sprintf("  Counts loaded                 %s genes x %s samples", d$n_genes_input, d$n_samples))
+  if (nrow(d$input_actions)) for (i in seq_len(nrow(d$input_actions))) emit(paste("  Input conversion             ", d$input_actions$reason[i]))
+  emit("\nConfiguration")
+  emit(sprintf("  Fit method                    %s", fit$fit_method))
+  emit(sprintf("  Normalization                 %s", fit$normalization))
+  emit(sprintf("  Quantile mapping              %s", fit$quantile_method))
+  emit(sprintf("  Reference                     %s", if (d$reference_selection_method == "explicit") fit$reference_batch else "automatic"))
+  emit("\nDesign")
+  emit(sprintf("  Full rank                     %s x %s; rank %s", d$n_samples, d$design_columns, d$design_rank))
+  emit(sprintf("  Residual degrees of freedom   %s", d$residual_df))
+  emit(sprintf("  Condition number              %.3g", d$condition_number))
+  emit(sprintf("  Batches                       %s", paste(names(d$batch_sizes), d$batch_sizes, sep = " n=", collapse = "; ")))
+  emit("\nNormalization")
+  emit(sprintf("  Library-size range            %.3g-%.3g", min(d$raw_library_sizes), max(d$raw_library_sizes)))
+  emit(sprintf("  Normalization-factor range    %.3g-%.3g", min(d$normalization_factors), max(d$normalization_factors)))
+  emit("\nReference selection")
+  for (i in seq_len(nrow(d$reference_local_designs))) with(d$reference_local_designs[i, ],
+    emit(sprintf("  %-20s n=%-4s score=%-10.4g df=%s %s", batch, n, score, residual_df, formula)))
+  emit(sprintf("  Selected reference            %s", fit$reference_batch))
+  if (d$reference_selection_method != "explicit") emit("  Stability                     not estimated; explicit reference recommended")
+  emit("\nCorrection")
+  emit(sprintf("  Model fitted                  %s supported genes", d$n_genes_adjusted))
+  emit(sprintf("  Unchanged genes               %s", d$n_genes_filtered))
+  emit(sprintf("  Numerical tail events         %s", d$numerical_tail_events))
 
-  utils::write.table(
-    fit$adjusted_counts,
-    file = opts$output,
-    col.names = TRUE,
-    row.names = TRUE,
-    sep = "\t",
-    quote = FALSE
-  )
-  if (!isTRUE(opts$quiet)) {
-    cli::cli_alert_success("Selected reference batch: {fit$reference_batch}")
-    cli::cli_alert_success("Wrote adjusted counts: {.path {opts$output}}")
+  stage <<- "output"; write_start <- proc.time()[["elapsed"]]
+  utils::write.table(fit$adjusted_counts, opts$output, sep = "\t", quote = FALSE, col.names = NA); written <- c(written, opts$output)
+  if (!is.null(opts$`diagnostics-json`)) { jsonlite::write_json(json_ready(d), opts$`diagnostics-json`, pretty = TRUE, auto_unbox = TRUE, null = "null", dataframe = "rows"); written <- c(written, opts$`diagnostics-json`) }
+  if (!is.null(opts$`gene-status`)) { utils::write.table(fit$gene_status, opts$`gene-status`, sep = "\t", quote = FALSE, row.names = FALSE); written <- c(written, opts$`gene-status`) }
+  write_seconds <- proc.time()[["elapsed"]] - write_start
+  emit("\nOutput")
+  emit(paste("  Adjusted counts              ", opts$output))
+  if (!is.null(opts$`diagnostics-json`)) emit(paste("  Diagnostics                  ", opts$`diagnostics-json`))
+  if (!is.null(opts$`gene-status`)) emit(paste("  Gene status                  ", opts$`gene-status`))
+  if (length(d$warnings)) { emit("\nWarnings recap"); for (w in unique(d$warnings)) emit(paste("  -", w)) }
+  if (opts$verbose) {
+    emit("\nTiming (seconds)")
+    emit(sprintf("  Reading                       %.3f", read_seconds))
+    for (name in names(d$timing_seconds)) emit(sprintf("  %-29s %.3f", tools::toTitleCase(name), d$timing_seconds[[name]]))
+    emit(sprintf("  Writing                       %.3f", write_seconds))
   }
-  invisible(0L)
+  emit(sprintf("\nCompleted in %.2f s", proc.time()[["elapsed"]] - started))
+  0L
 }
 
-tryCatch(
-  main(),
-  error = function(e) {
-    cli::cli_alert_danger("{conditionMessage(e)}")
-    quit(status = 1L)
-  }
-)
+exit_code <- function(stage, message) {
+  if (grepl("counts.*fractional|duplicate gene|negative count|non-finite|input.scale|normalized scale|sample identifiers", message, ignore.case = TRUE)) 2L
+  else if (stage == "design" || grepl("rank deficient|confound|residual degrees", message, ignore.case = TRUE)) 3L
+  else if (stage == "fit") 4L else if (stage == "output") 5L else 2L
+}
+
+stage <- "input"
+status <- tryCatch(main(), error = function(e) {
+  message("ComBat-refQL failed\n  Stage: ", stage, "\n  Error: ", conditionMessage(e),
+    "\n  No success status was written.")
+  exit_code(stage, conditionMessage(e))
+})
+if (!interactive()) quit(status = status)

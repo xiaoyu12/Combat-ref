@@ -8,18 +8,18 @@ test_that("counts must be valid", {
 
   bad <- counts
   bad[1, 1] <- NA_real_
-  expect_error(combat_ref(bad, fixture$batch, fixture$group), "missing or non-finite")
+  expect_error(combat_ref(bad, fixture$batch, fixture$group), "NA, NaN, or infinite")
 
   bad <- counts
   bad[, 1] <- 0
   expect_error(combat_ref(bad, fixture$batch, fixture$group), "all-zero samples")
 
   bad <- matrix(as.character(counts), nrow = nrow(counts), dimnames = dimnames(counts))
-  expect_error(combat_ref(bad, fixture$batch, fixture$group), "raw, non-negative integer counts")
+  expect_no_error(combat_ref(bad, fixture$batch, fixture$group))
 
   bad <- counts
   bad[1, 1] <- 1.5
-  expect_error(combat_ref(bad, fixture$batch, fixture$group), "TPM, CPM, logCPM")
+  expect_error(combat_ref(bad, fixture$batch, fixture$group), "fractional_counts")
 })
 
 test_that("integer and integer-like double counts are accepted", {
@@ -42,7 +42,8 @@ test_that("metadata must align exactly", {
 
   named_batch <- fixture$batch
   names(named_batch) <- rev(colnames(fixture$counts))
-  expect_error(combat_ref(fixture$counts, named_batch, fixture$group), "same order")
+  fit <- combat_ref(fixture$counts, named_batch, fixture$group)
+  expect_true(any(fit$diagnostics$input_actions$action == "reorder_by_sample_id"))
 
   named_batch <- fixture$batch
   names(named_batch) <- colnames(fixture$counts)

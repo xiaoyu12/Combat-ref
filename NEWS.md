@@ -1,50 +1,14 @@
 # combatrefql 0.1.0
 
-## Defaults
+No `0.1.0` Git tag or GitHub release existed on 2026-07-30, so this follow-up
+retains version 0.1.0 as a pre-release correction.
 
-- The default normalization is TMMwsp and the default mapping is deterministic mid-P.
-
-## Statistical corrections
-
-- Fixed the missing gene baseline when `group = NULL` with one named coefficient per batch.
-- Validation and fitting now use the same full-rank design.
-- Replaced positional coefficient subtraction with counterfactual prediction.
-- Removed the discontinuous `gamma < -0.2` fitted-mean cap.
-
-## New methods
-
-- Added experimental `fit_method = "ql_assisted"` and `combat_ref_ql()`.
-- QL dispersion is diagnostic only and remains separate from NB dispersion.
-
-## Normalization and offsets
-
-- Added TMMwsp, TMM, and none; library sizes and factors are calculated once before filtering.
-
-## Reference selection
-
-- Reference scores and an explicit unresolved-stability field are returned.
-
-## Quantile mapping
-
-- Added mid-P, upper-CDF, and explicitly seeded randomized mapping with safe probability bounds.
-
-## Diagnostics
-
-- Added gene status, design, offset, dispersion, version, and numerical-tail diagnostics.
-
-## Performance
-
-- `keep_model = FALSE` no longer retains fitted-mean, coefficient, or design-copy model payloads.
-
-## Tests and validation
-
-- Added direct tests for TMMwsp, null-group design, counterfactual prediction,
-  numerical mapping, QL/NB separation, and unsupported genes.
-
-## Documentation
-
-- Added migration, methodology, validation, changelog, and implementation reports.
-
-## Known limitations
-
-- Reference resampling and validated QL coefficient shrinkage are deferred.
+- Fixed within-batch reference designs to include an intercept and audit every fallback.
+- Made automatic-reference tie resolution independent of factor-level order.
+- Corrected QL fitting to use edgeR's v4 global common NB dispersion, never tagwise dispersion.
+- Removed fabricated reference frequency and added honest selection fields.
+- Derived convergence from edgeR failure/numerical checks; unavailable states are `NA`.
+- Preserved integer-valued mapped counts as doubles above the 32-bit integer range.
+- Added centralized, auditable lossless input repair and opt-in lossy policies.
+- Added normal/verbose/quiet CLI reports, JSON diagnostics, gene status, logs,
+  validation-only mode, flexible delimited files, timings, and stable exit codes.

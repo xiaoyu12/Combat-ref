@@ -15,6 +15,13 @@ where $o_i=\log(N_i f_i)$ uses the original library size $N_i$ and TMMwsp
 factor $f_i$. The design starts with one named column per batch and adds
 nonredundant group/covariate columns. Full rank is required.
 
+Automatic reference scoring fits each batch separately with an explicit
+intercept and the estimable local biological terms. Unused factor levels are
+dropped. Rank-deficient terms are removed one at a time and recorded; if no
+biological term is estimable, the recorded fallback is an intercept-only
+model. Thus the baseline biological group never has a mean model with an
+all-zero row and no intercept.
+
 For prediction, $X_i^{ref}$ copies $X_i$ and replaces only its batch indicators.
 The observed and reference means are
 
@@ -32,7 +39,15 @@ edgeR QL diagnostics use
 
 $$\operatorname{Var}(Y_{gi})=\sigma_g^2(\mu_{gi}+\phi_g\mu_{gi}^2).$$
 
-The NB dispersion $\phi_g$ and moderated QL dispersion $\sigma_g^2$ are stored
-separately. QL does not supply a CDF, so it is never passed to `pnbinom()` or
-`qnbinom()`. Genes all zero in a batch are unsupported and returned unchanged
-with an explicit status.
+With edgeR 4, the QL fit uses `glmQLFit(..., dispersion = NULL, robust = TRUE,
+legacy = FALSE)`, which estimates a global NB dispersion rather than accepting
+tagwise dispersions. Baseline tagwise NB dispersion, the global NB dispersion
+used by QL, and moderated QL dispersion $\sigma_g^2$ are stored separately. QL
+does not supply a CDF, so it is never passed to `pnbinom()` or `qnbinom()`.
+
+Input preparation is separate from model validation. Lossless conversions are
+announced and recorded in `diagnostics$input_actions`. Rounding fractional
+counts and summing duplicate gene identifiers require explicit opt-in and are
+marked as lossy or consequential. Negative, non-finite, normalized, ambiguous,
+or otherwise biologically unsafe inputs remain errors. Genes all zero in a
+batch are unsupported and returned unchanged with an explicit status.

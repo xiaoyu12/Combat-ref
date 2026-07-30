@@ -10,19 +10,23 @@ combat_ref(
   group = NULL,
   covariates = NULL,
   reference_batch = NULL,
-  normalization = c("TMMwsp", "TMM", "none"),
-  fit_method = c("baseline", "ql_assisted"),
-  quantile_method = c("midp", "upper", "randomized"),
+  normalization = "TMMwsp",
+  fit_method = "baseline",
+  quantile_method = "midp",
+  fractional_counts = c("error", "round"),
+  duplicate_genes = c("error", "sum"),
+  input_scale = "counts",
   lib_size = NULL,
   seed = NULL,
-  verbose = interactive(),
+  verbosity = c("auto", "quiet", "normal", "verbose"),
+  verbose = NULL,
   keep_model = FALSE
 )
 }
 \arguments{
-\item{counts}{Raw non-negative integer matrix, genes by samples.}
+\item{counts}{Raw count matrix or safely coercible data frame, genes by samples.}
 
-\item{batch}{Batch vector aligned with columns of \code{counts}.}
+\item{batch}{Batch vector aligned with samples.}
 
 \item{group}{Optional biological-group vector.}
 
@@ -30,26 +34,31 @@ combat_ref(
 
 \item{reference_batch}{Optional explicit reference batch.}
 
-\item{normalization}{edgeR normalization method; \code{"TMMwsp"} is the default.}
+\item{normalization}{edgeR normalization: \code{"TMMwsp"}, \code{"TMM"}, or \code{"none"}.}
 
-\item{fit_method}{Repaired NB baseline or experimental QL-assisted diagnostics.}
+\item{fit_method}{\code{"baseline"} or experimental \code{"ql_assisted"}.}
 
-\item{quantile_method}{Deterministic mid-P, upper-CDF, or randomized mapping.}
+\item{quantile_method}{\code{"midp"}, \code{"upper"}, or \code{"randomized"}.}
+
+\item{fractional_counts}{\code{"error"} or explicit lossy \code{"round"}.}
+
+\item{duplicate_genes}{\code{"error"} or explicit aggregation by \code{"sum"}.}
+
+\item{input_scale}{Must be \code{"counts"}; declared normalized scales are rejected.}
 
 \item{lib_size}{Optional positive library sizes, applied before normalization.}
 
 \item{seed}{Seed required for randomized mapping.}
 
-\item{verbose}{Print concise progress messages.}
+\item{verbosity}{Messaging level: auto, quiet, normal, or verbose.}
+
+\item{verbose}{Deprecated compatibility switch; use \code{verbosity}.}
 
 \item{keep_model}{Retain fitted coefficients and mean matrices.}
 }
 \value{
-A \code{combatref_result} object.
+A \code{combatref_result}; input repairs are in \code{diagnostics$input_actions}.
 }
 \description{
-Fits a negative-binomial model with one named coefficient per batch, then
-predicts each sample under its observed and counterfactual reference-batch
-designs. Count mapping always uses NB dispersion. The \code{"ql_assisted"} method
-adds edgeR QL diagnostics but does not treat QL dispersion as a distribution.
+Correct RNA-seq batch effects toward a reference batch
 }

@@ -1,0 +1,9 @@
+bibentry(
+  bibtype = "Article",
+  title = "Highly effective batch effect correction method for RNA-seq count data",
+  author = person("Xiaoyu", "Zhang"),
+  journal = "Computational and Structural Biotechnology Journal",
+  year = "2025",
+  doi = "10.1016/j.csbj.2024.12.010",
+  pmid = "39802213"
+)

@@ -58,7 +58,7 @@ test_that("keep_model controls model details", {
   full <- combat_ref(fixture$counts, fixture$batch, fixture$group, keep_model = TRUE)
   expect_true("model" %in% names(full))
   expect_true(all(c("design", "reference_design", "coefficients", "fitted_means",
-                    "reference_means", "nb_dispersion") %in% names(full$model)))
+                    "reference_means", "baseline_nb_tagwise_dispersion") %in% names(full$model)))
 })
 
 test_that("explicit reference batch is validated and used", {

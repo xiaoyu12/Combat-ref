@@ -39,9 +39,11 @@ test_that("QL support keeps NB and QL dispersion separate", {
   fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
   fit <- combat_ref_ql(fixture$counts, fixture$batch, fixture$group, keep_model = TRUE)
   expect_equal(fit$fit_method, "ql_assisted")
-  expect_true(!is.null(fit$model$nb_dispersion))
+  expect_true(!is.null(fit$model$baseline_nb_tagwise_dispersion))
+  expect_true(!is.null(fit$model$ql_nb_global_dispersion))
   expect_true(!is.null(fit$model$ql_dispersion))
-  expect_false(identical(fit$model$nb_dispersion, fit$model$ql_dispersion))
+  expect_false(identical(fit$model$baseline_nb_tagwise_dispersion, fit$model$ql_dispersion))
+  expect_false(identical(fit$model$baseline_nb_tagwise_dispersion, fit$model$ql_nb_global_dispersion))
 })
 
 test_that("unsupported zero-batch genes are visible", {
