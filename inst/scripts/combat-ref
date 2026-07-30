@@ -30,7 +30,12 @@ usage <- function() {
     "  --metadata PATH           CSV metadata with sample IDs in row names or a sample column.",
     "  --batch-column NAME       Metadata column containing batch labels.",
     "  --group-column NAME       Optional metadata column containing biological groups.",
-    "  --reference-batch NAME    Optional reference batch. Defaults to automatic legacy selection.",
+    "  --reference-batch NAME    Optional reference batch.",
+    "  --normalization METHOD    TMMwsp (default), TMM, or none.",
+    "  --fit-method METHOD       baseline (default) or ql_assisted.",
+    "  --quantile-method METHOD  midp (default), upper, or randomized.",
+    "  --seed INTEGER            Required for randomized mapping.",
+    "  --diagnostics PATH        Optional diagnostics TSV.",
     "  --output PATH             Output TSV for adjusted counts.",
     "  --verbose                 Print progress messages.",
     "  --quiet                   Suppress non-error output.",
@@ -41,8 +46,11 @@ usage <- function() {
 }
 
 parse_args <- function(args) {
-  out <- list(verbose = FALSE, quiet = FALSE)
-  value_flags <- c("--counts", "--metadata", "--batch-column", "--group-column", "--reference-batch", "--output")
+  out <- list(verbose = FALSE, quiet = FALSE, normalization = "TMMwsp",
+              `fit-method` = "baseline", `quantile-method` = "midp")
+  value_flags <- c("--counts", "--metadata", "--batch-column", "--group-column",
+                   "--reference-batch", "--normalization", "--fit-method",
+                   "--quantile-method", "--seed", "--diagnostics", "--output")
   names(value_flags) <- sub("^--", "", value_flags)
 
   i <- 1L
@@ -145,8 +153,24 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
     batch = metadata[[batch_column]],
     group = if (is.null(group_column)) NULL else metadata[[group_column]],
     reference_batch = opts[["reference-batch"]],
+    normalization = opts$normalization,
+    fit_method = opts[["fit-method"]],
+    quantile_method = opts[["quantile-method"]],
+    seed = if (is.null(opts$seed)) NULL else as.integer(opts$seed),
     verbose = isTRUE(opts$verbose) && !isTRUE(opts$quiet)
   )
+  if (!is.null(opts$diagnostics)) {
+    diagnostic_table <- data.frame(
+      key = c("reference_batch", "normalization", "fit_method", "quantile_method",
+              "design_rank", "design_columns", "residual_df", "numerical_tail_events"),
+      value = c(fit$reference_batch, fit$normalization, fit$fit_method,
+                fit$quantile_method, fit$diagnostics$design_rank,
+                fit$diagnostics$design_columns, fit$diagnostics$residual_df,
+                fit$diagnostics$numerical_tail_events)
+    )
+    utils::write.table(diagnostic_table, opts$diagnostics, sep = "\t", quote = FALSE,
+                       row.names = FALSE)
+  }
 
   utils::write.table(
     fit$adjusted_counts,

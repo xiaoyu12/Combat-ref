@@ -44,7 +44,7 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:
-          path: docs
+          path: site
 
       - uses: actions/deploy-pages@v4
         if: github.event_name != 'pull_request'

@@ -1,5 +1,5 @@
-validate_combat_inputs <- function(counts, batch, group = NULL, reference_batch = NULL,
-                                   lib_size = NULL) {
+validate_combat_inputs <- function(counts, batch, group = NULL, covariates = NULL,
+                                   reference_batch = NULL, lib_size = NULL) {
   if (!is.matrix(counts)) {
     counts <- as.matrix(counts)
   }
@@ -55,6 +55,19 @@ validate_combat_inputs <- function(counts, batch, group = NULL, reference_batch 
       cli::cli_abort("{.arg group} must not contain missing values.")
     }
     group <- factor(group)
+    if (nlevels(group) == 1L) group <- NULL
+  }
+
+  if (!is.null(covariates)) {
+    if (!is.data.frame(covariates) && !is.matrix(covariates)) {
+      cli::cli_abort("{.arg covariates} must be a data frame or matrix aligned with samples.")
+    }
+    covariates <- as.data.frame(covariates, check.names = FALSE)
+    if (nrow(covariates) != ncol(counts)) cli::cli_abort("{.arg covariates} must have one row per sample.")
+    if (!is.null(rownames(covariates)) && !identical(rownames(covariates), colnames(counts))) {
+      cli::cli_abort("Row names on {.arg covariates} must exactly match {.code colnames(counts)}.")
+    }
+    if (anyNA(covariates)) cli::cli_abort("{.arg covariates} must not contain missing values.")
   }
 
   if (!is.null(reference_batch) && !(reference_batch %in% levels(batch))) {
@@ -69,7 +82,7 @@ validate_combat_inputs <- function(counts, batch, group = NULL, reference_batch 
     lib_size <- as.numeric(lib_size)
   }
 
-  design <- build_combat_design(batch = batch, group = group)
+  design <- build_combat_design(batch = batch, group = group, covariates = covariates)
   if (qr(design)$rank < ncol(design)) {
     cli::cli_abort("The batch and group design is rank deficient or perfectly confounded.")
   }
@@ -78,6 +91,7 @@ validate_combat_inputs <- function(counts, batch, group = NULL, reference_batch 
     counts = counts,
     batch = batch,
     group = group,
+    covariates = covariates,
     reference_batch = reference_batch,
     lib_size = lib_size,
     design = design

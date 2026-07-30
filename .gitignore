@@ -6,4 +6,4 @@
 *.png
 *.mat
 *_corrected.mat
-docs
+site/

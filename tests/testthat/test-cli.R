@@ -46,7 +46,7 @@ test_that("CLI shows help", {
 test_that("CLI shows version", {
   out <- run_cli("--version")
   expect_null(attr(out, "status"))
-  expect_true(any(grepl("0.0.0.9000", out, fixed = TRUE)))
+  expect_true(any(grepl("0.1.0", out, fixed = TRUE)))
 })
 
 test_that("CLI validates missing files", {

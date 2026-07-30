@@ -1,9 +1,9 @@
-test_that("combat_ref reproduces legacy fixtures", {
+test_that("combat_ref_legacy reproduces legacy fixtures", {
   fixtures <- combatrefql_legacy_fixtures()
 
   for (nm in names(fixtures)) {
     fixture <- fixtures[[nm]]
-    fit <- combat_ref(
+    fit <- combat_ref_legacy(
       counts = fixture$counts,
       batch = fixture$batch,
       group = fixture$group
@@ -35,7 +35,7 @@ test_that("combat_ref is silent by default in noninteractive calls and verbose o
   expect_silent(combat_ref(fixture$counts, fixture$batch, fixture$group, verbose = FALSE))
   expect_message(
     combat_ref(fixture$counts, fixture$batch, fixture$group, verbose = TRUE),
-    "Validating input data"
+    "Fitting baseline"
   )
 })
 
@@ -78,7 +78,8 @@ test_that("keep_model controls model details", {
 
   full <- combat_ref(fixture$counts, fixture$batch, fixture$group, keep_model = TRUE)
   expect_true("model" %in% names(full))
-  expect_true(all(c("design", "common_dispersions", "coefficients", "fitted_means", "library_sizes") %in% names(full$model)))
+  expect_true(all(c("design", "reference_design", "coefficients", "fitted_means",
+                    "reference_means", "nb_dispersion") %in% names(full$model)))
 })
 
 test_that("explicit reference batch is validated and used", {

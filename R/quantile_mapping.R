@@ -48,14 +48,28 @@ monte_carlo_int_NB <- function(dat, mu, gamma, phi, gene.subset.n){
 
 ####  Match quantiles (vectorized)
 # keep_zero: zero values in the original counts don't change
-match_quantiles <- function(counts_sub, old_mu, old_phi, new_mu, new_phi, keep_zero=TRUE){
+match_quantiles <- function(counts_sub, old_mu, old_phi, new_mu, new_phi,
+                            keep_zero = TRUE, method = c("upper", "midp", "randomized")) {
+  method <- match.arg(method)
   nr <- nrow(counts_sub)
   nc <- ncol(counts_sub)
   # Expand per-gene phi vectors into matrices matching counts_sub dimensions
   old_phi_mat <- vec2mat(old_phi, nc)
   new_phi_mat <- vec2mat(new_phi, nc)
 
-  if(keep_zero) {
+  if (method == "midp") {
+    lower <- pnbinom(counts_sub - 1, mu = old_mu, size = 1 / old_phi_mat)
+    mass <- dnbinom(counts_sub, mu = old_mu, size = 1 / old_phi_mat)
+    tmp_p <- lower + 0.5 * mass
+    if (keep_zero) tmp_p[counts_sub == 0] <- 0
+    new_counts_sub <- qnbinom(pmin(pmax(tmp_p, .Machine$double.xmin), 1 - .Machine$double.eps),
+                              mu = new_mu, size = 1 / new_phi_mat)
+  } else if (method == "randomized") {
+    lower <- pnbinom(counts_sub - 1, mu = old_mu, size = 1 / old_phi_mat)
+    tmp_p <- lower + stats::runif(length(counts_sub)) *
+      dnbinom(counts_sub, mu = old_mu, size = 1 / old_phi_mat)
+    new_counts_sub <- qnbinom(pmin(tmp_p, 1 - .Machine$double.eps), mu = new_mu, size = 1 / new_phi_mat)
+  } else if(keep_zero) {
     # Compute CDF for counts-1 (shift for keep_zero mode)
     tmp_p <- pnbinom(counts_sub - 1, mu=old_mu, size=1/old_phi_mat)
     # Map through new distribution, adding 1 back
@@ -71,7 +85,7 @@ match_quantiles <- function(counts_sub, old_mu, old_phi, new_mu, new_phi, keep_z
     new_counts_sub[outlier_mask] <- counts_sub[outlier_mask]
   }
 
-  return(new_counts_sub)
+  storage.mode(new_counts_sub) <- "integer"
+  attr(new_counts_sub, "tail_events") <- sum(tmp_p <= .Machine$double.xmin | tmp_p >= 1 - .Machine$double.eps)
+  new_counts_sub
 }
-
-

@@ -2,68 +2,54 @@
 % Please edit documentation in R/combat_ref.R
 \name{combat_ref}
 \alias{combat_ref}
-\title{Fit the baseline ComBat-ref correction}
+\title{Correct RNA-seq batch effects toward a reference batch}
 \usage{
 combat_ref(
   counts,
   batch,
   group = NULL,
+  covariates = NULL,
   reference_batch = NULL,
+  normalization = c("TMMwsp", "TMM", "none"),
+  fit_method = c("baseline", "ql_assisted"),
+  quantile_method = c("midp", "upper", "randomized"),
   lib_size = NULL,
+  seed = NULL,
   verbose = interactive(),
   keep_model = FALSE
 )
 }
 \arguments{
-\item{counts}{Numeric count matrix-like object with genes in rows and samples
-in columns. Row and column names are required and preserved.}
+\item{counts}{Raw non-negative integer matrix, genes by samples.}
 
-\item{batch}{Batch vector aligned exactly with columns of \code{counts}.}
+\item{batch}{Batch vector aligned with columns of \code{counts}.}
 
-\item{group}{Optional biological-group vector aligned exactly with columns of
-\code{counts}.}
+\item{group}{Optional biological-group vector.}
 
-\item{reference_batch}{Optional reference batch. \code{NULL} reproduces the legacy
-automatic minimum-dispersion selection.}
+\item{covariates}{Optional sample-aligned data frame or matrix.}
 
-\item{lib_size}{Optional positive finite library sizes aligned with samples.
-\code{NULL} reproduces the legacy edgeR library-size behavior.}
+\item{reference_batch}{Optional explicit reference batch.}
 
-\item{verbose}{Logical. If \code{TRUE}, print concise progress messages with
-\code{cli}. Defaults to \code{interactive()}.}
+\item{normalization}{edgeR normalization method; \code{"TMMwsp"} is the default.}
 
-\item{keep_model}{Logical. If \code{TRUE}, include selected intermediate model
-quantities under the \code{model} field. Large edgeR fit objects are not
-returned.}
+\item{fit_method}{Repaired NB baseline or experimental QL-assisted diagnostics.}
+
+\item{quantile_method}{Deterministic mid-P, legacy-style upper-CDF, or randomized mapping.}
+
+\item{lib_size}{Optional positive library sizes, applied before normalization.}
+
+\item{seed}{Seed required for randomized mapping.}
+
+\item{verbose}{Print concise progress messages.}
+
+\item{keep_model}{Retain fitted coefficients and mean matrices.}
 }
 \value{
-A \code{combatref_result} object. Use \verb{$adjusted_counts} to access the
-corrected count matrix.
+A \code{combatref_result} object.
 }
 \description{
-\code{combat_ref()} exposes the original ComBat-ref reference-batch correction
-algorithm through an R-facing package API. The input matrix must contain genes
-in rows and samples in columns. The current implementation preserves the
-legacy negative-binomial fitting, dispersion estimation, automatic
-minimum-dispersion reference-batch selection, filtering, zero handling, and
-negative-binomial quantile mapping.
-}
-\details{
-This function does not implement quasi-likelihood correction.
-}
-\examples{
-counts <- matrix(
-  c(10, 12, 30, 33, 8, 9, 28, 31,
-    4, 5, 14, 16, 3, 4, 15, 17,
-    50, 55, 120, 130, 48, 52, 125, 135,
-    1, 2, 4, 5, 1, 2, 5, 6),
-  nrow = 4,
-  byrow = TRUE,
-  dimnames = list(paste0("gene", 1:4), paste0("sample", 1:8))
-)
-batch <- rep(c("batch_A", "batch_B"), each = 2, times = 2)
-group <- rep(c("ctrl", "treated"), each = 4)
-
-fit <- combat_ref(counts, batch = batch, group = group)
-adjusted_counts <- fit$adjusted_counts
+Fits a negative-binomial model with one named coefficient per batch, then
+predicts each sample under its observed and counterfactual reference-batch
+designs. Count mapping always uses NB dispersion. The \code{"ql_assisted"} method
+adds edgeR QL diagnostics but does not treat QL dispersion as a distribution.
 }
