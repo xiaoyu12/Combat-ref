@@ -1,9 +1,7 @@
 # combatrefql 0.1.0
 
-## Breaking changes
+## Defaults
 
-- `combat_ref()` now runs the repaired baseline; exact historical behavior moved
-  to `combat_ref_legacy()`.
 - The default normalization is TMMwsp and the default mapping is deterministic mid-P.
 
 ## Statistical corrections
@@ -47,11 +45,6 @@
 
 - Added migration, methodology, validation, changelog, and implementation reports.
 
-## Deprecated behavior
-
-- The legacy algorithm remains available only through `combat_ref_legacy()`.
-
 ## Known limitations
 
 - Reference resampling and validated QL coefficient shrinkage are deferred.
-- Upstream licensing remains unresolved.

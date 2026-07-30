@@ -1,5 +1,5 @@
 test_that("design construction preserves batch and group structure", {
-  fixture <- combatrefql_legacy_fixtures()[["character_unbalanced"]]
+  fixture <- combatrefql_test_fixtures()[["character_unbalanced"]]
   design <- combatrefql:::build_combat_design(fixture$batch, fixture$group)
 
   expect_equal(nrow(design), ncol(fixture$counts))

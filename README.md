@@ -39,9 +39,8 @@ The defaults are `normalization = "TMMwsp"`, `fit_method = "baseline"`, and
 `quantile_method = "midp"`. Automatic reference selection is available when
 `reference_batch = NULL`, but an explicit reference is more reproducible.
 
-Use `combat_ref_legacy()` only to reproduce historical results. Use
-`combat_ref_ql()` to add experimental QL diagnostics while retaining NB count
-mapping.
+Use `combat_ref_ql()` to add experimental QL diagnostics while retaining NB
+count mapping.
 
 ## Methods
 
@@ -74,6 +73,4 @@ The CLI accepts the same method choices and can write a diagnostics TSV; run
 
 ## License
 
-Repository licensing and upstream redistribution status require clarification.
-See [LICENSE_NOTES.md](LICENSE_NOTES.md). Do not redistribute upstream-derived
-code without resolving those terms.
+The package is distributed under the MIT license in [LICENSE](LICENSE).

@@ -13,6 +13,5 @@
 ^validation$
 ^CHANGELOG\.md$
 ^MIGRATION\.md$
-^LICENSE_NOTES\.md$
 ^_pkgdown\.yml$
 ^site$

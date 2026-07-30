@@ -61,7 +61,7 @@ test_that("CLI validates missing files", {
 })
 
 test_that("CLI delegates to package implementation", {
-  fixture <- combatrefql_legacy_fixtures()[["numeric_balanced"]]
+  fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
   tmp <- tempdir()
   files <- write_cli_fixture(tmp, fixture)
   output_file <- file.path(tmp, "adjusted.tsv")
@@ -86,7 +86,7 @@ test_that("CLI delegates to package implementation", {
 })
 
 test_that("CLI quiet mode suppresses routine output", {
-  fixture <- combatrefql_legacy_fixtures()[["numeric_balanced"]]
+  fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
   tmp <- tempdir()
   files <- write_cli_fixture(tmp, fixture)
   output_file <- file.path(tmp, "adjusted-quiet.tsv")
@@ -106,7 +106,7 @@ test_that("CLI quiet mode suppresses routine output", {
 })
 
 test_that("CLI reports metadata reordering and rejects silent reordering", {
-  fixture <- combatrefql_legacy_fixtures()[["numeric_balanced"]]
+  fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
   tmp <- tempdir()
   files <- write_cli_fixture(tmp, fixture, shuffled = TRUE)
   output_file <- file.path(tmp, "adjusted-reordered.tsv")

@@ -5,9 +5,9 @@ Authors@R: c(
     person("Xiaoyu", "Zhang", role = "ctb"),
     person("Thomas", "Sirchi", role = c("aut", "cre"), email = "thomasirchi@gmail.com")
   )
-Description: Development package for refactoring the original ComBat-ref
-    reference-batch RNA-seq batch-correction implementation. Provides a repaired
-    negative-binomial baseline and experimental quasi-likelihood diagnostics.
+Description: Reference-batch RNA-seq count correction with a negative-binomial
+    model, counterfactual prediction, and experimental quasi-likelihood
+    diagnostics.
 License: file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -16,7 +16,6 @@ Depends:
 Imports:
     cli,
     edgeR,
-    matrixStats,
     stats,
     utils
 Suggests:

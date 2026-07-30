@@ -1,5 +1,5 @@
 test_that("counts must be valid", {
-  fixture <- combatrefql_legacy_fixtures()[["numeric_balanced"]]
+  fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
   counts <- fixture$counts
 
   bad <- counts
@@ -23,7 +23,7 @@ test_that("counts must be valid", {
 })
 
 test_that("integer and integer-like double counts are accepted", {
-  fixture <- combatrefql_legacy_fixtures()[["numeric_balanced"]]
+  fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
 
   integer_counts <- fixture$counts
   storage.mode(integer_counts) <- "integer"
@@ -35,7 +35,7 @@ test_that("integer and integer-like double counts are accepted", {
 })
 
 test_that("metadata must align exactly", {
-  fixture <- combatrefql_legacy_fixtures()[["numeric_balanced"]]
+  fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
 
   expect_error(combat_ref(fixture$counts, fixture$batch[-1], fixture$group), "length")
   expect_error(combat_ref(fixture$counts, rep("one", ncol(fixture$counts)), fixture$group), "at least two")
@@ -50,7 +50,7 @@ test_that("metadata must align exactly", {
 })
 
 test_that("invalid library sizes fail clearly", {
-  fixture <- combatrefql_legacy_fixtures()[["numeric_balanced"]]
+  fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
 
   expect_error(combat_ref(fixture$counts, fixture$batch, fixture$group, lib_size = rep(1, 2)), "length")
   expect_error(combat_ref(fixture$counts, fixture$batch, fixture$group, lib_size = rep(0, 8)), "lib_size")

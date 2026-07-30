@@ -34,7 +34,7 @@ combat_ref(
 
 \item{fit_method}{Repaired NB baseline or experimental QL-assisted diagnostics.}
 
-\item{quantile_method}{Deterministic mid-P, legacy-style upper-CDF, or randomized mapping.}
+\item{quantile_method}{Deterministic mid-P, upper-CDF, or randomized mapping.}
 
 \item{lib_size}{Optional positive library sizes, applied before normalization.}
 

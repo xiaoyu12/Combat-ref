@@ -12,7 +12,7 @@
 #' @param reference_batch Optional explicit reference batch.
 #' @param normalization edgeR normalization method; `"TMMwsp"` is the default.
 #' @param fit_method Repaired NB baseline or experimental QL-assisted diagnostics.
-#' @param quantile_method Deterministic mid-P, legacy-style upper-CDF, or randomized mapping.
+#' @param quantile_method Deterministic mid-P, upper-CDF, or randomized mapping.
 #' @param lib_size Optional positive library sizes, applied before normalization.
 #' @param seed Seed required for randomized mapping.
 #' @param verbose Print concise progress messages.
@@ -78,29 +78,6 @@ combat_ref <- function(counts, batch, group = NULL, covariates = NULL,
     validated$batch, validated$group, validated$covariates, gene_status,
     rownames(validated$counts)[unsupported], diagnostics, fit$model, call
   )
-}
-
-#' Run the exact compatibility ComBat-ref implementation
-#' @inheritParams combat_ref
-#' @return A `combatref_result` compatibility result.
-#' @export
-combat_ref_legacy <- function(counts, batch, group = NULL, reference_batch = NULL,
-                              lib_size = NULL, verbose = interactive(), keep_model = FALSE) {
-  validated <- validate_combat_inputs(counts, batch, group, reference_batch = reference_batch,
-                                      lib_size = lib_size)
-  utils::capture.output(adjusted <- ComBat_ref(validated$counts, validated$batch,
-    validated$group, reference_batch = validated$reference_batch,
-    lib_size = validated$lib_size, genewise.disp = FALSE))
-  ref <- attr(adjusted, "reference_batch"); model <- attr(adjusted, "model")
-  attr(adjusted, "reference_batch") <- attr(adjusted, "model") <- NULL
-  unsupported <- rownames(validated$counts)[vapply(seq_len(nrow(validated$counts)), function(i)
-    any(vapply(levels(validated$batch), function(b) all(validated$counts[i, validated$batch == b] == 0), logical(1))), logical(1))]
-  diagnostics <- list(n_genes_input = nrow(adjusted), n_genes_adjusted = nrow(adjusted),
-    n_genes_filtered = length(unsupported), n_samples = ncol(adjusted),
-    batch_sizes = table(validated$batch), group_sizes = if (is.null(validated$group)) NULL else table(validated$group))
-  new_combatref_result(adjusted, ref, "legacy", "legacy", "upper", validated$batch,
-    validated$group, NULL, NULL, unsupported, diagnostics,
-    if (keep_model) model else NULL, match.call())
 }
 
 #' Experimental QL-assisted ComBat-ref diagnostics

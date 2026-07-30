@@ -28,6 +28,6 @@ preservation, reference stability, runtime, or memory claims.
 Before 0.2.0, run the predefined multi-scenario study covering 2–5 batches,
 balanced/unbalanced groups, depth/composition shifts, zeros, outliers,
 confounding failures, null effects, and sparse/widespread DE. Compare direct
-edgeR QL analysis of raw counts, legacy, repaired baseline, and QL-assisted
+edgeR QL analysis of raw counts, the package baseline, and QL-assisted
 diagnostics. Predefine acceptable false-positive, FDR, bias, and biological
 signal-preservation margins before reading results.

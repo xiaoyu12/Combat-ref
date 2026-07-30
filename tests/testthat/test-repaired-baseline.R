@@ -1,5 +1,5 @@
 test_that("TMMwsp is default and offsets are fixed before filtering", {
-  fixture <- combatrefql_legacy_fixtures()[["numeric_balanced"]]
+  fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
   fit <- combat_ref(fixture$counts, fixture$batch, fixture$group, keep_model = TRUE)
   direct <- edgeR::normLibSizes(edgeR::DGEList(fixture$counts), method = "TMMwsp")
   expect_equal(fit$normalization, "TMMwsp")
@@ -9,7 +9,7 @@ test_that("TMMwsp is default and offsets are fixed before filtering", {
 })
 
 test_that("group NULL retains one baseline coefficient per batch", {
-  fixture <- combatrefql_legacy_fixtures()[["numeric_balanced"]]
+  fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
   fit <- combat_ref(fixture$counts, fixture$batch, group = NULL, keep_model = TRUE)
   expect_equal(colnames(fit$model$design), paste0("batch", levels(factor(fixture$batch))))
   expect_equal(qr(fit$model$design)$rank, ncol(fit$model$design))
@@ -18,7 +18,7 @@ test_that("group NULL retains one baseline coefficient per batch", {
 })
 
 test_that("counterfactual prediction preserves reference samples", {
-  fixture <- combatrefql_legacy_fixtures()[["numeric_balanced"]]
+  fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
   fit <- combat_ref(fixture$counts, fixture$batch, fixture$group,
                     reference_batch = "1", keep_model = TRUE)
   ref <- factor(fixture$batch) == "1"
@@ -36,7 +36,7 @@ test_that("mid-P mapping is finite monotone and identity-safe", {
 })
 
 test_that("QL support keeps NB and QL dispersion separate", {
-  fixture <- combatrefql_legacy_fixtures()[["numeric_balanced"]]
+  fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
   fit <- combat_ref_ql(fixture$counts, fixture$batch, fixture$group, keep_model = TRUE)
   expect_equal(fit$fit_method, "ql_assisted")
   expect_true(!is.null(fit$model$nb_dispersion))
@@ -45,7 +45,7 @@ test_that("QL support keeps NB and QL dispersion separate", {
 })
 
 test_that("unsupported zero-batch genes are visible", {
-  fixture <- combatrefql_legacy_fixtures()[["numeric_balanced"]]
+  fixture <- combatrefql_test_fixtures()[["numeric_balanced"]]
   fit <- combat_ref(fixture$counts, fixture$batch, fixture$group)
   expect_true(all(fit$gene_status$status[fit$gene_status$gene %in% fit$removed_genes] ==
                     "unsupported_zero_batch"))

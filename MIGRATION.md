@@ -1,13 +1,19 @@
-# Migrating to 0.1.0
+# Using 0.1.0
 
-| Before | 0.1.0 | Action |
-|---|---|---|
-| No normalization | TMMwsp default | Set `normalization = "none"` for an unnormalized repaired fit. |
-| Historical implementation | Repaired baseline | Call `combat_ref_legacy()` for exact historical output. |
-| Broken `group = NULL` mean model | Named batch baselines | Expect corrected fitted means and numerical results. |
-| Upper-CDF mapping | Mid-P mapping | Set `quantile_method = "upper"` for the alternative repaired mapping. |
-| Positional batch coefficients and hard cap | Counterfactual prediction | Expect continuous, design-invariant changes. |
-| Silent unsupported genes | `gene_status` | Inspect `unsupported_zero_batch` before interpreting output. |
+The supported API is `combat_ref()` with these defaults:
 
-QL diagnostics are opt-in with `combat_ref_ql()` or
-`fit_method = "ql_assisted"`. They do not define a probability distribution.
+```r
+combat_ref(
+  counts,
+  batch,
+  group = NULL,
+  normalization = "TMMwsp",
+  fit_method = "baseline",
+  quantile_method = "midp"
+)
+```
+
+Use `normalization = "none"` for unnormalized effective library sizes,
+`quantile_method = "upper"` for upper-CDF mapping, and `combat_ref_ql()` for
+experimental QL diagnostics. Inspect `gene_status` before interpreting genes
+that are all zero within a batch.
