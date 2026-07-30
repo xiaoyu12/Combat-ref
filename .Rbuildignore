@@ -7,9 +7,11 @@
 ^.*\.csv$
 ^.*\.rds$
 ^.*\.RData$
+^\.serena$
 ^development$
-^LICENSE_NOTES\.md$
-^validation$
-^_pkgdown\.yml$
 ^docs$
-^pkgdown$
+^validation$
+^CHANGELOG\.md$
+^MIGRATION\.md$
+^_pkgdown\.yml$
+^site$

@@ -1,157 +1,76 @@
 # ComBat-refQL
 
-ComBat-refQL is a development R package for the baseline ComBat-ref RNA-seq
-reference-batch correction algorithm. The package is being polished around the
-existing method; quasi-likelihood correction is future work and is not
-implemented.
+Reference-batch correction for raw RNA-seq counts. Version 0.1.0 provides a
+repaired negative-binomial ComBat-ref baseline and an explicitly experimental
+edgeR quasi-likelihood diagnostic layer. QL dispersion is never used as an NB
+distribution parameter.
 
-## Table of contents
+## Contents
 
-- [Overview](#overview)
-- [Installation](#installation)
+- [Install](#install)
 - [Quick start](#quick-start)
-- [Input requirements](#input-requirements)
-- [Command-line usage](#command-line-usage)
-- [Returned value](#returned-value)
-- [Development status](#development-status)
-- [Citation](#citation)
+- [Methods](#methods)
+- [Output](#output)
+- [Limitations](#limitations)
 - [License](#license)
 
-## Overview
-
-`combatrefql` wraps the current ComBat-ref implementation as a small R library.
-The exported function is `combat_ref()`, which returns corrected counts and a
-compact result object.
-
-The statistical correction remains the baseline ComBat-ref algorithm: negative
-binomial fitting, dispersion estimation, automatic minimum-dispersion reference
-selection, and negative-binomial quantile mapping are preserved. The package
-does not run `glmQLFit()` and does not implement quasi-likelihood count
-correction.
-
-## Installation
+## Install
 
 ```r
-install.packages("pak")
-pak::pak("Thokas99/ComBat-refQL")
-
-library(combatrefql)
+remotes::install_github("Thokas99/ComBat-refQL")
 ```
-
-The package is not released on CRAN or Bioconductor.
 
 ## Quick start
 
 ```r
 library(combatrefql)
 
-counts <- matrix(
-  c(10, 12, 30, 33, 8, 9, 28, 31,
-    4, 5, 14, 16, 3, 4, 15, 17,
-    50, 55, 120, 130, 48, 52, 125, 135,
-    1, 2, 4, 5, 1, 2, 5, 6),
-  nrow = 4,
-  byrow = TRUE,
-  dimnames = list(paste0("gene", 1:4), paste0("sample", 1:8))
-)
-
-metadata <- data.frame(
-  batch = rep(c("batch_A", "batch_B"), each = 2, times = 2),
-  condition = rep(c("control", "treated"), each = 4),
-  row.names = colnames(counts)
-)
-
 fit <- combat_ref(
-  counts = counts,
+  counts,
   batch = metadata$batch,
   group = metadata$condition,
-  verbose = TRUE
+  reference_batch = "batch_A"
 )
-
-adjusted_counts <- fit$adjusted_counts
-
-fit
-summary(fit)
+fit$adjusted_counts
+fit$gene_status
 ```
 
-Use an explicit reference batch when the study design requires one:
+The defaults are `normalization = "TMMwsp"`, `fit_method = "baseline"`, and
+`quantile_method = "midp"`. Automatic reference selection is available when
+`reference_batch = NULL`, but an explicit reference is more reproducible.
 
-```r
-fit <- combat_ref(
-  counts = counts,
-  batch = metadata$batch,
-  group = metadata$condition,
-  reference_batch = "batch_A",
-  verbose = TRUE
-)
-```
+Use `combat_ref_ql()` to add experimental QL diagnostics while retaining NB
+count mapping.
 
-## Input requirements
+## Methods
 
-- `counts` must contain raw, non-negative integer RNA-seq counts.
-- Genes are rows and samples are columns.
-- `batch` must have one value per sample and align with `colnames(counts)`.
-- `group` is optional and must also align with `colnames(counts)` when supplied.
-- TPM, CPM, logCPM and other normalized expression values are not accepted.
-- Batch and group must not be perfectly confounded.
-- Each batch must contain enough samples for the baseline model fit.
+The repaired model uses named batch coefficients plus biological covariates,
+one set of effective library sizes calculated before filtering, and
+counterfactual prediction with each sample's batch set to the reference batch.
+Unsupported genes remain unchanged and are identified in `gene_status`.
 
-## Command-line usage
+For differential expression, analyze raw counts directly with an edgeR QL model
+including batch and biological group. Adjusted counts do not propagate batch
+correction uncertainty.
 
-```bash
-combat-ref \
-  --counts counts.tsv \
-  --metadata metadata.csv \
-  --batch-column batch \
-  --group-column condition \
-  --output adjusted_counts.tsv
-```
+## Output
 
-The metadata CSV must use sample identifiers as row names in its first column.
-The CLI reports metadata reordering when sample IDs match but order differs.
+`combat_ref()` returns adjusted counts, selected reference, resolved methods,
+gene-level status, compact diagnostics, and the call. `keep_model = TRUE` also
+returns coefficients, observed/reference means, design matrices, and separate
+NB/QL dispersions.
 
-## Returned value
+The CLI accepts the same method choices and can write a diagnostics TSV; run
+`combat-ref --help` for options.
 
-`combat_ref()` returns a `combatref_result` object with stable fields:
+## Limitations
 
-- `adjusted_counts`: corrected count matrix;
-- `reference_batch`: selected or requested reference batch;
-- `batch`: validated batch factor;
-- `group`: validated group factor or `NULL`;
-- `removed_genes`: genes that were all zero within at least one batch;
-- `diagnostics`: compact counts, batch sizes, group sizes and reference details;
-- `call`: matched function call.
-
-Set `keep_model = TRUE` to include selected internal model quantities under
-`model`.
-
-## Development status
-
-Current scope:
-
-- baseline ComBat-ref package API;
-- regression tests protecting legacy corrected counts;
-- CLI wrapper around `combat_ref()`;
-- restored source-only validation resources under `validation/`.
-
-Deferred scope:
-
-- quasi-likelihood correction;
-- performance claims;
-- public release until licensing is clarified.
-
-## Citation
-
-This package is derived from the original ComBat-ref research implementation by
-Xiaoyu Zhang and collaborators. The original method and results should be cited
-separately:
-
-- Zhang X. and collaborators. ComBat-ref for RNA-seq batch correction. PubMed:
-  <https://pubmed.ncbi.nlm.nih.gov/39802213/>
+- QL support is experimental and diagnostic-only; it is not a QL count distribution.
+- Automatic reference scores are dispersion-based point estimates in 0.1.0;
+  stability probabilities require future resampling validation.
+- Genes all zero in any batch cannot be fitted and are returned unchanged.
+- Corrected-count performance has not been externally validated.
 
 ## License
 
-Licensing is provisional. The package wrapper code and upstream-derived
-statistical implementation are documented in `LICENSE` and `LICENSE_NOTES.md`.
-No explicit upstream license was found during inspection, so redistribution
-terms require manual clarification before public release.
+The package is distributed under the MIT license in [LICENSE](LICENSE).

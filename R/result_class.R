@@ -1,11 +1,17 @@
-new_combatref_result <- function(adjusted_counts, reference_batch, batch, group,
-                                 removed_genes, diagnostics, model = NULL,
-                                 call) {
+new_combatref_result <- function(adjusted_counts, reference_batch, normalization,
+                                 fit_method, quantile_method, batch, group,
+                                 covariates, gene_status, removed_genes,
+                                 diagnostics, model = NULL, call) {
   out <- list(
     adjusted_counts = adjusted_counts,
     reference_batch = reference_batch,
+    normalization = normalization,
+    fit_method = fit_method,
+    quantile_method = quantile_method,
     batch = batch,
     group = group,
+    covariates = covariates,
+    gene_status = gene_status,
     removed_genes = removed_genes,
     diagnostics = diagnostics,
     call = call
@@ -28,6 +34,7 @@ print.combatref_result <- function(x, ...) {
   cli::cli_text("Samples:        {ncol(x$adjusted_counts)}")
   cli::cli_text("Batches:        {length(x$diagnostics$batch_sizes)}")
   cli::cli_text("Reference:      {x$reference_batch}")
+  cli::cli_text("Method:         {x$fit_method}; {x$normalization}; {x$quantile_method}")
   cli::cli_text("Filtered genes: {length(x$removed_genes)}")
   invisible(x)
 }

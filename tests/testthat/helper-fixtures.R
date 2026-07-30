@@ -1,4 +1,4 @@
-combatrefql_legacy_fixtures <- function() {
+combatrefql_test_fixtures <- function() {
   list(
     numeric_balanced = list(
       counts = structure(
@@ -20,24 +20,7 @@ combatrefql_legacy_fixtures <- function() {
       ),
       batch = c(1, 1, 2, 2, 1, 1, 2, 2),
       group = c("ctrl", "ctrl", "ctrl", "ctrl", "trt", "trt", "trt", "trt"),
-      expected_reference_batch = "1",
-      expected_adjusted = structure(
-        c(
-          10, 0, 1, 6, 3, 60,
-          12, 0, 2, 7, 4, 65,
-          26, 0, 0, 8, 7, 154,
-          28, 0, 0, 8, 8, 164,
-          8, 0, 3, 7, 2, 55,
-          9, 0, 2, 8, 3, 58,
-          23, 0, 0, 8, 9, 144,
-          25, 0, 0, 8, 10, 159
-        ),
-        dim = c(6L, 8L),
-        dimnames = list(
-          c("gene_stable", "gene_all_zero", "gene_zero_batch2", "gene_low", "gene_small", "gene_large"),
-          paste0("sample", 1:8)
-        )
-      )
+      expected_reference_batch = "1"
     ),
     character_unbalanced = list(
       counts = structure(
@@ -58,23 +41,7 @@ combatrefql_legacy_fixtures <- function() {
       ),
       batch = c("batch_A", "batch_A", "batch_A", "batch_B", "batch_B", "batch_B", "batch_B"),
       group = c("ctrl", "ctrl", "trt", "ctrl", "ctrl", "trt", "trt"),
-      expected_reference_batch = "batch_A",
-      expected_adjusted = structure(
-        c(
-          5, 1, 0, 20, 2, 90,
-          7, 2, 0, 24, 3, 110,
-          6, 1, 0, 22, 1, 100,
-          12, 0, 4, 46, 5, 207,
-          15, 0, 5, 51, 4, 229,
-          14, 0, 6, 49, 6, 223,
-          15, 0, 4, 53, 5, 240
-        ),
-        dim = c(6L, 7L),
-        dimnames = list(
-          c("gene_a", "gene_b", "gene_zero_batch_A", "gene_d", "gene_low", "gene_big"),
-          paste0("char_sample", 1:7)
-        )
-      )
+      expected_reference_batch = "batch_A"
     )
   )
 }
