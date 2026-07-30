@@ -1,19 +1,19 @@
-# Using 0.1.0
+# Using the corrected 0.1.0 pre-release
 
-The supported API is `combat_ref()` with these defaults:
+Defaults remain TMMwsp, baseline NB fitting, and mid-P mapping. QL users will
+see a changed global NB dispersion because tagwise dispersion is no longer
+passed to `glmQLFit()`.
+
+Safe input coercions now occur automatically and are available at:
 
 ```r
-combat_ref(
-  counts,
-  batch,
-  group = NULL,
-  normalization = "TMMwsp",
-  fit_method = "baseline",
-  quantile_method = "midp"
-)
+fit$diagnostics$input_actions
 ```
 
-Use `normalization = "none"` for unnormalized effective library sizes,
-`quantile_method = "upper"` for upper-CDF mapping, and `combat_ref_ql()` for
-experimental QL diagnostics. Inspect `gene_status` before interpreting genes
-that are all zero within a batch.
+Use `verbosity = "quiet"` to suppress messages without losing the audit.
+Fractional counts and duplicate genes remain errors unless explicitly enabled
+with `fractional_counts = "round"` or `duplicate_genes = "sum"`.
+
+CLI users should replace `--diagnostics` with `--diagnostics-json`; optional
+`--gene-status`, `--log-file`, `--validate-only`, `--no-color`, and
+`--input-scale` are available. Failure codes are documented in `--help`.

@@ -1,30 +1,12 @@
 # ComBat-refQL
 
-Reference-batch correction for raw RNA-seq counts. Version 0.1.0 provides a
-repaired negative-binomial ComBat-ref baseline and an explicitly experimental
-edgeR quasi-likelihood diagnostic layer. QL dispersion is never used as an NB
-distribution parameter.
+Reference-batch correction for raw RNA-seq counts. Version 0.1.0 uses TMMwsp
+normalization, negative-binomial counterfactual prediction, and deterministic
+mid-P mapping. The optional QL pathway is diagnostic and experimental.
 
-## Contents
-
-- [Install](#install)
-- [Quick start](#quick-start)
-- [Methods](#methods)
-- [Output](#output)
-- [Limitations](#limitations)
-- [License](#license)
-
-## Install
+## R API
 
 ```r
-pak::pak("Thokas99/ComBat-refQL")
-```
-
-## Quick start
-
-```r
-library(combatrefql)
-
 fit <- combat_ref(
   counts,
   batch = metadata$batch,
@@ -32,45 +14,75 @@ fit <- combat_ref(
   reference_batch = "batch_A"
 )
 fit$adjusted_counts
-fit$gene_status
+fit$diagnostics$input_actions
 ```
 
-The defaults are `normalization = "TMMwsp"`, `fit_method = "baseline"`, and
-`quantile_method = "midp"`. Automatic reference selection is available when
-`reference_batch = NULL`, but an explicit reference is more reproducible.
+`verbosity = "auto"` is quiet in scripts and normal interactively. Choose
+`quiet`, `normal`, or `verbose` explicitly when needed. The older `verbose`
+logical remains accepted.
 
-Use `combat_ref_ql()` to add experimental QL diagnostics while retaining NB
-count mapping.
+### Input preparation
 
-## Methods
+Lossless repairs are automatic, announced in normal mode, and recorded in
+`diagnostics$input_actions`: data frames to numeric matrices; numeric character
+columns; a unique first gene-ID column; integer storage to double; batch/group
+factors; one-level group to `NULL`; named sample reordering; unambiguous
+transposition; and case-insensitive method spellings.
 
-The repaired model uses named batch coefficients plus biological covariates,
-one set of effective library sizes calculated before filtering, and
-counterfactual prediction with each sample's batch set to the reference batch.
-Unsupported genes remain unchanged and are identified in `gene_status`.
+Lossy changes require explicit opt-in:
 
-For differential expression, analyze raw counts directly with an edgeR QL model
-including batch and biological group. Adjusted counts do not propagate batch
+```r
+combat_ref(..., fractional_counts = "round")
+combat_ref(..., duplicate_genes = "sum")
+```
+
+Negative, missing, non-finite, unparseable, ambiguous, normalized, or undeclared
+fractional inputs remain errors. Declare `input_scale = "TPM"` (or CPM, logCPM,
+RPKM, FPKM) to obtain an explicit rejection; only `"counts"` is accepted.
+
+## CLI
+
+```bash
+combat-ref \
+  --counts counts.tsv \
+  --metadata metadata.csv \
+  --batch-column batch \
+  --group-column condition \
+  --output adjusted.tsv \
+  --diagnostics-json diagnostics.json \
+  --gene-status gene_status.tsv
+```
+
+Normal mode prints input, configuration, design, normalization, reference,
+correction, warnings, and output summaries. Add `--verbose` for timings,
+`--quiet` for pipelines, `--no-color` for plain text, `--log-file` for a run
+log, or `--validate-only` to check inputs/design without fitting.
+
+Stable exit codes are 0 success, 2 input/format, 3 design, 4 fit/mapping, and 5
+output writing. TSV, CSV, clearly delimited TXT, and gzipped TSV/CSV are
+supported.
+
+## Statistical details
+
+Every within-batch dispersion score uses an intercept-bearing local design.
+Missing levels and non-estimable columns are reduced explicitly and recorded in
+`reference_local_designs`. Automatic reference ties are resolved by batch name.
+
+The ordinary fit uses tagwise NB dispersion. With edgeR >= 4.2.0, QL fitting
+uses `glmQLFit(..., dispersion = NULL, legacy = FALSE)`, which estimates a
+global common NB dispersion. The global QL input, tagwise baseline dispersion,
+and moderated QL dispersion are stored separately. QL dispersion is never used
+in NB quantile functions.
+
+For differential expression, analyze raw counts directly with an edgeR QL
+model containing batch and biological group; corrected counts do not propagate
 correction uncertainty.
 
-## Output
+## Citation and license
 
-`combat_ref()` returns adjusted counts, selected reference, resolved methods,
-gene-level status, compact diagnostics, and the call. `keep_model = TRUE` also
-returns coefficients, observed/reference means, design matrices, and separate
-NB/QL dispersions.
+The original ComBat-ref method is described by Zhang X. “Highly effective batch
+effect correction method for RNA-seq count data.” *Computational and Structural
+Biotechnology Journal* (2025). DOI: 10.1016/j.csbj.2024.12.010; PMID: 39802213.
 
-The CLI accepts the same method choices and can write a diagnostics TSV; run
-`combat-ref --help` for options.
-
-## Limitations
-
-- QL support is experimental and diagnostic-only; it is not a QL count distribution.
-- Automatic reference scores are dispersion-based point estimates in 0.1.0;
-  stability probabilities require future resampling validation.
-- Genes all zero in any batch cannot be fitted and are returned unchanged.
-- Corrected-count performance has not been externally validated.
-
-## License
-
-The package is distributed under the MIT license in [LICENSE](LICENSE).
+The newly written package implementation is MIT licensed. This does not invent
+or alter licensing terms for upstream code or data.

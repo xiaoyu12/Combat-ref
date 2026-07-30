@@ -6,6 +6,13 @@ This release has deterministic unit and integration coverage, but it has not
 passed a broad simulation or external real-data validation gate. It must not be
 described as validated, superior, or production ready.
 
+The follow-up statistical tests verify that local reference-score designs have
+an intercept, QL fitting uses a global rather than tagwise NB dispersion, and
+mapped counts remain exact non-negative doubles above the 32-bit integer range.
+Input and CLI tests verify audited lossless conversions, explicit opt-in for
+lossy conversions, validation-only mode, and machine-readable diagnostics.
+These are correctness tests, not biological validation.
+
 ## Reproducible smoke simulation
 
 `validation/simulation.R` generates 200 NB genes across two balanced batches
@@ -16,7 +23,7 @@ fixed to batch A.
 | Metric | Result |
 |---|---:|
 | Raw median B/A mean ratio | 1.7112 |
-| Adjusted median B/A mean ratio | 1.6447 |
+| Adjusted median B/A mean ratio | 1.6579 |
 | Unsupported genes | 0 |
 
 The correction moved the simple batch ratio toward one only modestly. This
