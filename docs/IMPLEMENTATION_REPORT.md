@@ -103,4 +103,4 @@ sessionInfo()
 Final results: 106 tests passed with no failures, warnings, or skips; R CMD
 check completed with 0 errors, 0 warnings, and 0 notes; the methodology vignette
 and pkgdown site built successfully. R 4.6.1, edgeR 4.10.1, macOS Tahoe 26.5.2,
-arm64. Starting commit: `bbce315`. The final commit is recorded at handoff.
+arm64. Starting commit: `bbce315`; implementation commit: `3a66f1c`.
