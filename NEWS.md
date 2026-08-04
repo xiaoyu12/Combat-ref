@@ -1,14 +1,19 @@
-# combatrefql 0.1.0
+# combatrefql 0.2.0
 
-No `0.1.0` Git tag or GitHub release existed on 2026-07-30, so this follow-up
-retains version 0.1.0 as a pre-release correction.
+This release intentionally breaks compatibility to make ComBat-refQL a focused
+QL-first package.
 
-- Fixed within-batch reference designs to include an intercept and audit every fallback.
-- Made automatic-reference tie resolution independent of factor-level order.
-- Corrected QL fitting to use edgeR's v4 global common NB dispersion, never tagwise dispersion.
-- Removed fabricated reference frequency and added honest selection fields.
-- Derived convergence from edgeR failure/numerical checks; unavailable states are `NA`.
-- Preserved integer-valued mapped counts as doubles above the 32-bit integer range.
-- Added centralized, auditable lossless input repair and opt-in lossy policies.
-- Added normal/verbose/quiet CLI reports, JSON diagnostics, gene status, logs,
-  validation-only mode, flexible delimited files, timings, and stable exit codes.
+- `combat_ref_ql()` is the sole fitting API and edgeR v4 QL is the sole model.
+- Counterfactual means from `glmQLFit(..., robust = TRUE, legacy = FALSE)` are
+  transported with one deterministic negative-binomial mid-P method.
+- `CombatRefQLFit` and `CombatRefQLSummary` replace all old S3 result classes.
+- CLI output is staged and non-redundant, with quiet, normal, and verbose modes.
+- Fractional counts are rounded by default with a structured lossy-input audit.
+- Typed conditions and tidy diagnostics make failures and results inspectable.
+- Counterfactual prediction is batch-local and transport is gene-chunked.
+- Baseline and legacy fits, method-selection arguments, randomized mapping,
+  seeds, plotting, JSON diagnostics, the standalone CLI, deprecated aliases,
+  compatibility wrappers, and migration machinery were removed.
+
+Negative-binomial dispersion and QL dispersion are separate quantities. No QL
+or posterior QL dispersion is passed to an NB probability function.

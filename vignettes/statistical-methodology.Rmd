@@ -1,53 +1,37 @@
 ---
-title: "Statistical methodology"
+title: "QL-fitted means and NB mid-P transport"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Statistical methodology}
+  %\VignetteIndexEntry{QL-fitted means and NB mid-P transport}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-For gene $g$ and sample $i$, version 0.1.0 fits
+ComBat-refQL 0.2.0 fits raw counts with edgeR v4:
 
-$$\log(\mu_{gi})=o_i+X_i\beta_g,$$
+```r
+edgeR::glmQLFit(dge, design, dispersion = NULL, robust = TRUE, legacy = FALSE)
+```
 
-where $o_i=\log(N_i f_i)$ uses the original library size $N_i$ and TMMwsp
-factor $f_i$. The design starts with one named column per batch and adds
-nonredundant group/covariate columns. Full rank is required.
+TMMwsp normalization is calculated once. The full-rank design has one named
+coefficient per batch and preserves the supplied group and covariates. For a
+sample in a non-reference batch, only its batch indicators are changed to form
+the reference counterfactual design. The QL fit coefficients and offsets define
+the observed and counterfactual means.
 
-Automatic reference scoring fits each batch separately with an explicit
-intercept and the estimable local biological terms. Unused factor levels are
-dropped. Rank-deficient terms are removed one at a time and recorded; if no
-biological term is estimable, the recorded fallback is an intercept-only
-model. Thus the baseline biological group never has a mean model with an
-all-zero row and no intercept.
+The v4 pipeline estimates one global underlying negative-binomial dispersion.
+That `nb_dispersion` is the only dispersion passed to `pnbinom()`, `dnbinom()`,
+and `qnbinom()`. Genewise `ql_dispersion` and
+`posterior_ql_dispersion` describe residual quasi-likelihood variability; they
+do not define a count CDF and are never NB distribution parameters.
 
-For prediction, $X_i^{ref}$ copies $X_i$ and replaces only its batch indicators.
-The observed and reference means are
+For observed count $y$, the deterministic mid-P probability is
 
-$$\hat\mu_{gi}=\exp(o_i+X_i\hat\beta_g),\qquad
-\hat\mu^{ref}_{gi}=\exp(o_i+X_i^{ref}\hat\beta_g).$$
+$$u=F_{NB}(y-1;\mu_{obs},\phi_{NB})+
+\tfrac12P_{NB}(Y=y;\mu_{obs},\phi_{NB}).$$
 
-The deterministic mapping uses
-
-$$u=F_{old}(y-1)+\tfrac12P_{old}(Y=y),\qquad y^*=F_{ref}^{-1}(u),$$
-
-with probabilities clamped to finite machine bounds. Both distributions are
-negative binomial with variance $\mu+\phi\mu^2$.
-
-edgeR QL diagnostics use
-
-$$\operatorname{Var}(Y_{gi})=\sigma_g^2(\mu_{gi}+\phi_g\mu_{gi}^2).$$
-
-With edgeR 4, the QL fit uses `glmQLFit(..., dispersion = NULL, robust = TRUE,
-legacy = FALSE)`, which estimates a global NB dispersion rather than accepting
-tagwise dispersions. Baseline tagwise NB dispersion, the global NB dispersion
-used by QL, and moderated QL dispersion $\sigma_g^2$ are stored separately. QL
-does not supply a CDF, so it is never passed to `pnbinom()` or `qnbinom()`.
-
-Input preparation is separate from model validation. Lossless conversions are
-announced and recorded in `diagnostics$input_actions`. Rounding fractional
-counts and summing duplicate gene identifiers require explicit opt-in and are
-marked as lossy or consequential. Negative, non-finite, normalized, ambiguous,
-or otherwise biologically unsafe inputs remain errors. Genes all zero in a
-batch are unsupported and returned unchanged with an explicit status.
+The adjusted count is the NB quantile under the counterfactual reference mean
+and the same valid global NB dispersion. Observed zeros remain zero. Genes that
+are all zero in any batch are unsupported and returned unchanged. Transport is
+performed by non-reference batch and gene chunk; intermediate means are not
+retained in the result.

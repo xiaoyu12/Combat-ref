@@ -32,10 +32,15 @@ jobs:
           needs: check
 
       - name: Document
-        run: Rscript -e 'devtools::document()'
+        run: |
+          Rscript -e 'devtools::document()'
+          git diff --exit-code -- NAMESPACE man/
 
       - name: Test
         run: Rscript -e 'devtools::test()'
 
       - name: Check
         run: Rscript -e 'devtools::check(document = FALSE, manual = FALSE)'
+
+      - name: Clean installation
+        run: R CMD INSTALL .
