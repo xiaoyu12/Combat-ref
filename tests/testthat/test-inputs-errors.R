@@ -16,6 +16,15 @@ test_that("invalid counts and normalized scale have typed errors", {
   expect_error(combat_ref_ql(normalized,z$batch,z$group,verbosity="quiet"), class="combatrefql_input_error")
 })
 
+test_that("plausible sparse fractional estimated counts remain accepted", {
+  z <- combatrefql_test_fixtures()[[1]]
+  estimated <- z$counts + ifelse(z$counts > 0, 0.25, 0)
+  fit <- combat_ref_ql(estimated, z$batch, z$group, reference = "1",
+    verbosity = "quiet")
+  expect_s7_class(fit, CombatRefQLFit)
+  expect_gt(fit@diagnostics$input_actions$affected_values, 0)
+})
+
 test_that("named metadata reorder and bad alignment is typed", {
   z <- combatrefql_test_fixtures()[[1]]
   b <- setNames(z$batch, colnames(z$counts)); b <- b[rev(names(b))]

@@ -1,7 +1,8 @@
-# Validation report — 0.2.0
+# Validation report — 0.2.1
 
 Unit tests cover the new API, S7 validation, typed failures, dispersion
-separation, deterministic transport, zero preservation, and chunk equivalence.
+separation, deterministic transport, zero preservation, chunk equivalence,
+mapping-failure rollback, and fractional/normalized input-scale boundaries.
 The reproducible smoke simulation in `validation/simulation.R` checks dimensions,
 integer-valued double output, and a fixed reference on synthetic NB counts.
 

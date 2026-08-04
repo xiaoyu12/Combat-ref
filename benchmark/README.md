@@ -12,8 +12,8 @@ identical 2,000-gene by 24-sample input with three batches produced:
 
 | Method | Elapsed seconds | Approximate result size (MiB) |
 |---|---:|---:|
-| combatrefql | 0.379 | 1.414 |
-| sva::ComBat_seq | 0.422 | 0.506 |
+| combatrefql 0.2.1 | 0.377 | 1.347 |
+| sva::ComBat_seq | 0.321 | 0.506 |
 
 Elapsed time is one local run, not a stable estimate. Result object size is not
 peak memory. The script reports both transparently and makes no superiority

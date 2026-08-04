@@ -1,13 +1,23 @@
-make_gene_status <- function(counts, batch, keep) {
+make_gene_status <- function(counts, batch, keep, mapping_valid) {
   zero_support <- vapply(levels(batch), function(x) rowSums(counts[, batch == x, drop = FALSE]) == 0, logical(nrow(counts)))
   if (is.null(dim(zero_support))) zero_support <- matrix(zero_support, ncol = 1L)
   zero_labels <- apply(zero_support, 1L, function(x) paste(levels(batch)[x], collapse = ","))
-  data.frame(
-    gene = rownames(counts), status = ifelse(keep, "adjusted", "unsupported"),
-    reason = ifelse(keep, NA_character_, "all zero in at least one batch"),
-    adjusted = keep, zero_batches = zero_labels, fit_valid = keep,
-    mapping_valid = keep, stringsAsFactors = FALSE
-  )
+  status <- rep("unsupported", nrow(counts))
+  status[keep] <- ifelse(mapping_valid, "adjusted", "failed")
+  reason <- rep("all zero in at least one batch", nrow(counts))
+  reason[status == "adjusted"] <- NA_character_
+  reason[status == "failed"] <- "negative-binomial transport failed; original row retained"
+  data.frame(gene = rownames(counts), status = status, reason = reason,
+    adjusted = status == "adjusted", zero_batches = zero_labels,
+    fit_valid = keep, mapping_valid = keep & status == "adjusted",
+    stringsAsFactors = FALSE)
+}
+
+make_outcomes <- function(gene_status) {
+  levels <- c("adjusted", "unsupported", "failed")
+  genes <- tabulate(match(gene_status$status, levels), nbins = length(levels))
+  data.frame(outcome = levels, genes = genes,
+    proportion = genes / nrow(gene_status), stringsAsFactors = FALSE)
 }
 
 empty_warnings <- function() data.frame(stage = character(), class = character(), message = character())

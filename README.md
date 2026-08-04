@@ -6,7 +6,7 @@
 
 [![R CMD check](https://github.com/Thokas99/ComBat-refQL/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Thokas99/ComBat-refQL/actions/workflows/R-CMD-check.yaml)
 [![pkgdown](https://github.com/Thokas99/ComBat-refQL/actions/workflows/pkgdown.yaml/badge.svg)](https://thokas99.github.io/ComBat-refQL/)
-[![Version](https://img.shields.io/badge/version-0.2.0-4C78A8.svg)](NEWS.md)
+[![Version](https://img.shields.io/badge/version-0.2.1-4C78A8.svg)](NEWS.md)
 [![Lifecycle](https://img.shields.io/badge/lifecycle-experimental-EF9B20.svg)](#scientific-status)
 [![R](https://img.shields.io/badge/R-%E2%89%A5%204.3-276DC3.svg)](https://www.r-project.org/)
 [![edgeR](https://img.shields.io/badge/edgeR-%E2%89%A5%204.2-87B13F.svg)](https://bioconductor.org/packages/edgeR/)
@@ -328,7 +328,7 @@ $$
 y^* = F^{-1}_{\mathrm{ref}}(u).
 $$
 
-Both distributions are negative binomial. Observed zeros remain zero in version 0.2.0.
+Both distributions are negative binomial. Observed zeros remain zero.
 
 See the [statistical methodology vignette](vignettes/statistical-methodology.Rmd) for the complete model and assumptions.
 
@@ -352,7 +352,9 @@ fit <- combat_ref_ql(
 )
 ```
 
-Smaller chunks reduce temporary probability-mapping allocations but increase loop overhead. Larger chunks may be faster when memory is abundant.
+Observed and counterfactual means are calculated inside each chunk. Smaller
+chunks reduce temporary allocations but increase loop overhead. Failed genes
+retain their complete original rows and are reported in structured diagnostics.
 
 An optional reproducible comparison with `sva::ComBat_seq()` is available in [`benchmark/`](benchmark/README.md). The recorded result is one local benchmark, not a general performance claim.
 
@@ -366,6 +368,8 @@ An optional reproducible comparison with `sva::ComBat_seq()` is available in [`b
 - separation of NB and QL dispersion quantities;
 - deterministic mid-P transport and zero preservation;
 - chunk-equivalent output;
+- per-gene mapping failure detection and complete-row rollback;
+- rejection of suspicious normalized matrices while accepting plausible sparse fractional estimated counts;
 - large integer-valued doubles;
 - package installation and `R CMD check` on Linux and macOS.
 
@@ -380,12 +384,6 @@ An optional reproducible comparison with `sva::ComBat_seq()` is available in [`b
 - superiority over ComBat-seq or direct model-based alternatives.
 
 The current smoke simulation changes the median batch B/A mean ratio from **1.7112** to **1.6667**. This is only modest movement toward one and must not be interpreted as broad validation.
-
-### Current engineering priorities
-
-1. **True memory-bounded mapping:** chunk fitted and counterfactual means as well as NB probability calculations.
-2. **Per-gene mapping validation:** detect and report numerical mapping failures instead of assuming every supported gene succeeded.
-3. **Stronger scale safety:** prevent normalized continuous matrices from being rounded into pseudo-counts.
 
 See the [validation report](validation/VALIDATION_REPORT.md) for the exact evidence and limitations.
 
@@ -422,7 +420,7 @@ tryCatch(
 | [Implementation report](IMPLEMENTATION_REPORT.md) | Architecture and implementation decisions |
 | [Validation report](validation/VALIDATION_REPORT.md) | Current evidence and validation gaps |
 | [Benchmark](benchmark/README.md) | Optional runtime comparison |
-| [Release notes](NEWS.md) | User-facing changes in 0.2.0 |
+| [Release notes](NEWS.md) | User-facing changes in 0.2.1 |
 | [Changelog](CHANGELOG.md) | Repository development history |
 | [Package website](https://thokas99.github.io/ComBat-refQL/) | Rendered reference documentation |
 
@@ -450,6 +448,6 @@ The newly written ComBat-refQL implementation is available under the [MIT Licens
 
 <div align="center">
 
-**ComBat-refQL 0.2.0** · focused QL modelling · auditable reference transport · explicit limitations
+**ComBat-refQL 0.2.1** · focused QL modelling · auditable reference transport · explicit limitations
 
 </div>

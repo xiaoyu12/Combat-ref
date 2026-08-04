@@ -28,6 +28,38 @@ test_that("chunking is equivalent and unsupported genes remain unchanged", {
   expect_equal(a@counts[z$counts==0],rep(0,sum(z$counts==0)))
 })
 
+test_that("mapping failures retain complete original rows and drive outcomes", {
+  counts <- matrix(c(10, 12, 20, 22, 5, 6, 7, 8), nrow = 2, byrow = TRUE,
+    dimnames = list(c("ok", "failed"), paste0("s", 1:4)))
+  batch <- factor(c("A", "A", "B", "B"))
+  design <- stats::model.matrix(~ 0 + batch)
+  colnames(design) <- c("batchA", "batchB")
+  fit <- list(
+    coefficients = matrix(c(log(10), log(20), Inf, log(7)), nrow = 2,
+      byrow = TRUE),
+    offset = matrix(0, 2, 4), dispersion = 0.2
+  )
+  mapped <- combatrefql:::transport_counts(counts, c(TRUE, TRUE), batch, "A",
+    design, fit, chunk_size = 2L)
+  expect_true(mapped$mapping_valid[1])
+  expect_false(mapped$mapping_valid[2])
+  expect_identical(mapped$counts[2, ], counts[2, ])
+  expect_equal(mapped$failures$gene, "failed")
+
+  status <- combatrefql:::make_gene_status(counts, batch, c(TRUE, TRUE),
+    mapped$mapping_valid)
+  outcomes <- combatrefql:::make_outcomes(status)
+  expect_equal(status$status, c("adjusted", "failed"))
+  expect_equal(outcomes$genes, c(1L, 0L, 1L))
+})
+
+test_that("mapping computes means inside each gene chunk", {
+  code <- paste(deparse(body(combatrefql:::transport_counts)), collapse = " ")
+  expect_false(grepl("fit\\$fitted.values", code))
+  expect_match(code, "chunk_coefficients")
+  expect_match(code, "chunk_offset")
+})
+
 test_that("automatic reference and verbosity modes are deterministic", {
   z <- combatrefql_test_fixtures()[[1]]
   quiet <- testthat::capture_messages(a <- combat_ref_ql(z$counts,z$batch,z$group,verbosity="quiet"))

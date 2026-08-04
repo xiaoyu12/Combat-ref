@@ -20,7 +20,12 @@ prepare_inputs <- function(counts, batch, group, covariates, reference,
                 "*" = "Use {.code fractional_counts = \"round\"} to audit and round them.",
                 affected_values = n_fractional)
   }
-  if (n_fractional && mean(fractional) > 0.9 && max(counts) < 100) {
+  library_sizes <- colSums(counts)
+  equal_library_sizes <- length(library_sizes) > 1L && mean(library_sizes) > 0 &&
+    (max(library_sizes) - min(library_sizes)) / mean(library_sizes) < 1e-6
+  dense_small_expression <- max(counts) < 100 && mean(counts == 0) < 0.01
+  if (n_fractional && mean(fractional) > 0.9 &&
+      (equal_library_sizes || dense_small_expression)) {
     input_error("{.arg counts} appears to be normalized expression rather than raw counts.",
                 "*" = "Supply untransformed read counts; TPM, CPM, and log-expression are unsupported.")
   }

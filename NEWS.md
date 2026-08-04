@@ -1,3 +1,16 @@
+# combatrefql 0.2.1
+
+- Calculate observed and counterfactual means inside each gene chunk during
+  transport, reducing peak temporary memory.
+- Detect numerical mapping failures per gene, retain each failed gene's complete
+  original row, and report typed structured failure diagnostics.
+- Derive outcome totals from final gene statuses and validate their consistency
+  in `CombatRefQLFit`.
+- Refine normalized-expression detection so suspicious dense or equal-library
+  matrices are rejected while plausible sparse fractional estimated counts can
+  be audited and rounded.
+- Streamline the README and validate every local link.
+
 # combatrefql 0.2.0
 
 This release intentionally breaks compatibility to make ComBat-refQL a focused
