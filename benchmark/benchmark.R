@@ -18,4 +18,3 @@ result <- data.frame(
   R = as.character(getRversion()), edgeR = as.character(packageVersion("edgeR")),
   sva = as.character(packageVersion("sva")), stringsAsFactors = FALSE)
 print(result, row.names = FALSE)
-

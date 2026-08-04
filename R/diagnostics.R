@@ -15,4 +15,3 @@ empty_warnings <- function() data.frame(stage = character(), class = character()
 timing_row <- function(stage, start) data.frame(stage = stage, seconds = proc.time()[["elapsed"]] - start)
 
 `%||%` <- function(x, y) if (is.null(x)) y else x
-

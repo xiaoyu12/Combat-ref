@@ -13,4 +13,3 @@ and observed/reference mean matrices are omitted from the final object.
 `model` retains coefficients, one NB dispersion, QL diagnostic vectors, and
 the design needed for inspection. It does not retain input counts, fitted means,
 counterfactual means, or transport intermediates.
-

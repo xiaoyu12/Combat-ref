@@ -30,4 +30,3 @@ reference_design <- function(design, batch, reference, columns) {
   out[, paste0("batch", reference)] <- 1
   out
 }
-

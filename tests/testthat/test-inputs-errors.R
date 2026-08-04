@@ -8,7 +8,6 @@ test_that("fractional counts round by default and are audited", {
   expect_true(action$lossy)
   expect_error(combat_ref_ql(z$counts,z$batch,z$group,fractional_counts="error",verbosity="quiet"), class="combatrefql_input_error")
 })
-
 test_that("invalid counts and normalized scale have typed errors", {
   z <- combatrefql_test_fixtures()[[1]]
   bad <- z$counts; bad[1,1] <- -1
@@ -33,4 +32,3 @@ test_that("design and reference failures have fields", {
   err <- expect_error(combat_ref_ql(z$counts,z$batch,z$group,reference="missing",verbosity="quiet"), class="combatrefql_reference_error")
   expect_identical(err$stage, "reference")
 })
-
