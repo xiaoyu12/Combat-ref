@@ -1,3 +1,14 @@
+# combatrefql 0.3.0
+
+- Automatic reference scoring now adjusts for locally estimable biological
+  groups and covariates.
+- Local reference designs record dropped terms, missing levels, fallbacks, and
+  residual degrees of freedom.
+- The main fitting orchestrator and result construction were simplified without
+  changing the public API.
+- The README was shortened and detailed scientific limitations moved to
+  `SCIENTIFIC_STATUS.md`.
+
 # combatrefql 0.2.1
 
 - Calculate observed and counterfactual means inside each gene chunk during

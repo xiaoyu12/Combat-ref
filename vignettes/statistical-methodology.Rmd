@@ -7,7 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-ComBat-refQL 0.2.1 fits raw counts with edgeR v4:
+ComBat-refQL 0.3.0 fits raw counts with edgeR v4:
 
 ```r
 edgeR::glmQLFit(dge, design, dispersion = NULL, robust = TRUE, legacy = FALSE)
@@ -35,3 +35,40 @@ and the same valid global NB dispersion. Observed zeros remain zero. Genes that
 are all zero in any batch are unsupported and returned unchanged. Transport is
 performed by non-reference batch and gene chunk; intermediate means are not
 retained in the result.
+
+## Biologically adjusted reference scoring
+
+An intercept-only within-batch model treats biological heterogeneity as
+unexplained variability. When biological-group composition or supplied
+covariates differ among batches, that can inflate a candidate's dispersion and
+confound technical reference scoring with biological structure.
+
+For each candidate batch, ComBat-refQL therefore constructs a fresh local
+design from that batch's samples. The design always contains an intercept and
+then adds the biological group and supplied covariates when they are locally
+estimable. Unused factor levels are dropped and recorded. Locally constant,
+redundant, or non-estimable terms are omitted, as are terms that would exhaust
+the residual degrees of freedom. If no biological term can be retained, the
+candidate uses an intercept-only fallback and records the reason.
+
+Each valid candidate is fitted with
+
+```r
+edgeR::glmQLFit(
+  local_dge,
+  local_design,
+  dispersion = NULL,
+  robust = TRUE,
+  legacy = FALSE
+)
+```
+
+The candidate score is the valid global underlying NB dispersion returned by
+that local edgeR v4 QL fit. The finite candidate with the smallest score is
+selected unless the user supplies an explicit reference. Local QL and NB
+dispersion quantities remain separate under the same boundary used for the
+main model.
+
+Automatic reference selection remains heuristic: its score is not a formal
+measure of batch quality, the rule is not claimed to be optimal or validated,
+and selection stability is not yet bootstrapped.

@@ -25,7 +25,8 @@ combat_ref_ql(
 
 \item{covariates}{Optional sample-by-covariate data frame or matrix.}
 
-\item{reference}{Optional reference batch. The minimum-dispersion batch is selected when \code{NULL}.}
+\item{reference}{Optional reference batch. When \code{NULL}, the minimum-dispersion
+batch is selected from biologically adjusted within-batch QL fits.}
 
 \item{normalization}{edgeR library normalization method. Only \code{"TMMwsp"} is supported.}
 

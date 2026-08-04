@@ -1,8 +1,11 @@
-# Validation report — 0.2.1
+# Validation report — 0.3.0
 
 Unit tests cover the new API, S7 validation, typed failures, dispersion
 separation, deterministic transport, zero preservation, chunk equivalence,
 mapping-failure rollback, and fractional/normalized input-scale boundaries.
+Targeted tests also cover biologically adjusted within-batch reference designs,
+missing factor levels, constant and redundant covariates, residual degrees of
+freedom, explicit-reference override, and deterministic automatic selection.
 The reproducible smoke simulation in `validation/simulation.R` checks dimensions,
 integer-valued double output, and a fixed reference on synthetic NB counts.
 

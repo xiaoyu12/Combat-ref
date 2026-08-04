@@ -1,9 +1,14 @@
-# ComBat-refQL 0.2.1 implementation report
+# ComBat-refQL 0.3.0 implementation report
 
 The package has one orchestrator, one edgeR v4 QL fit, and one deterministic NB
-mid-P kernel. Input preparation, design construction, reference scoring,
-fitting, transport, diagnostics, S7 validation, and printing are separated by
+mid-P kernel. Input preparation, normalization, support assessment, design
+construction, biologically adjusted reference scoring, fitting, transport,
+diagnostics, result construction, S7 validation, and reporting are separated by
 responsibility. Numerical kernels do not print.
+
+Each automatic-reference candidate receives a fresh local design. Locally
+constant, redundant, or residual-df-exhausting biological terms are recorded
+and omitted; intercept-only fallback is explicit in the batch diagnostics.
 
 Peak-memory work is structural: observed and reference means are calculated
 inside each `chunk_size` gene block for the current non-reference batch;

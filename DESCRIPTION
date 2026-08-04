@@ -1,6 +1,6 @@
 Package: combatrefql
 Title: ComBat-refQL QL-First Reference-Batch RNA-Seq Correction
-Version: 0.2.1
+Version: 0.3.0
 Authors@R: c(
     person("Xiaoyu", "Zhang", role = "ctb"),
     person("Thomas", "Sirchi", role = c("aut", "cre"), email = "thomasirchi@gmail.com")
