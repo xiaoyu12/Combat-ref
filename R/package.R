@@ -1,8 +1,7 @@
-#' combatrefql: reference-batch RNA-seq count correction
+#' ComBat-refQL: QL-first reference-batch RNA-seq correction
 #'
-#' Negative-binomial correction with TMMwsp normalization, counterfactual
-#' reference prediction, and optional quasi-likelihood diagnostics.
+#' Robust edgeR v4 quasi-likelihood counterfactual means with deterministic
+#' negative-binomial mid-P quantile transport toward one reference batch.
 #'
-#' @importFrom jsonlite toJSON
 #' @keywords internal
 "_PACKAGE"

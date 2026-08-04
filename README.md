@@ -6,15 +6,14 @@
 
 **Reference-batch correction for raw RNA-seq counts.**
 
-ComBat-refQL combines TMMwsp normalization, a negative-binomial model,
-counterfactual reference-batch prediction, and deterministic mid-P quantile
-mapping. It preserves count-matrix dimensions, reports unsupported genes, and
-records every automatic input repair.
+ComBat-refQL combines TMMwsp normalization, edgeR v4 quasi-likelihood fitting,
+counterfactual reference-batch prediction, and deterministic negative-binomial
+mid-P transport. It preserves count-matrix dimensions and reports unsupported
+genes and lossy input actions.
 
 > [!IMPORTANT]
-> The QL-assisted pathway is experimental. For proper differential
-> expression, analyze raw counts directly and use a model containing
-> batch and biological group.
+> QL fitting supplies counterfactual means; it does not define a count CDF.
+> Negative-binomial and QL dispersions remain strictly separate.
 
 ## Table of contents
 
@@ -22,7 +21,6 @@ records every automatic input repair.
 - [Installation](#installation)
 - [Quick start](#quick-start)
 - [What the result contains](#what-the-result-contains)
-- [Command-line interface](#command-line-interface)
 - [Input safety](#input-safety)
 - [Statistical approach](#statistical-approach)
 - [Limitations](#limitations)
@@ -38,9 +36,8 @@ records every automatic input repair.
   while preserving biological-group and covariate terms.
 - **Auditable:** reports designs, offsets, normalization factors, reference
   scores, unsupported genes, fallbacks, and input conversions.
-- **Safe by default:** never silently rounds fractional counts, aggregates
-  duplicate genes, or accepts normalized expression values.
-- **Practical:** offers both an R API and an informative command-line tool.
+- **Safe by default:** audits fractional-count rounding and rejects invalid or
+  normalized expression values.
 
 ## Installation
 
@@ -58,7 +55,7 @@ Then load the package:
 library(combatrefql)
 ```
 
-ComBat-refQL requires R 4.1 or newer and edgeR 4.2 or newer.
+ComBat-refQL requires R 4.3 or newer and edgeR 4.2 or newer.
 
 ## Quick start
 
@@ -66,18 +63,18 @@ ComBat-refQL requires R 4.1 or newer and edgeR 4.2 or newer.
 vectors must describe those same samples.
 
 ```r
-fit <- combat_ref(
+fit <- combat_ref_ql(
   counts = counts,
   batch = metadata$batch,
   group = metadata$condition,
-  reference_batch = "batch_A"
+  reference = "batch_A"
 )
 
-adjusted_counts <- fit$adjusted_counts
+adjusted_counts <- fit@counts
 ```
 
-If `reference_batch` is omitted, ComBat-refQL selects one automatically and
-returns the batch scores and local designs used in that decision. An explicit
+If `reference` is omitted, ComBat-refQL selects one automatically and returns
+the batch scores used in that decision. An explicit
 reference is recommended when study design or external QC identifies the best
 batch.
 
@@ -86,90 +83,29 @@ The defaults are:
 | Setting | Default |
 |---|---|
 | Normalization | `TMMwsp` |
-| Fit | negative-binomial baseline |
-| Quantile mapping | deterministic mid-P |
+| Fit | robust edgeR v4 QL |
+| Transport | deterministic NB mid-P |
 | Reference | automatic unless specified |
-| Messages | normal interactively, quiet in scripts |
-
-### Experimental QL diagnostics
-
-```r
-fit_ql <- combat_ref_ql(
-  counts,
-  batch = metadata$batch,
-  group = metadata$condition,
-  reference_batch = "batch_A"
-)
-```
-
-This adds edgeR quasi-likelihood diagnostics; corrected counts are still mapped
-with a negative-binomial distribution. QL dispersion is never substituted into
-`pnbinom()` or `qnbinom()`.
+| Messages | normal, quiet, or verbose |
 
 ## What the result contains
 
 ```r
-fit$adjusted_counts                 # non-negative, integer-valued doubles
-fit$reference_batch                 # selected or requested reference
-fit$gene_status                     # adjusted, unsupported, or failed genes
-fit$diagnostics$input_actions       # every safe conversion performed
-fit$diagnostics$reference_local_designs
+fit@counts                          # non-negative, integer-valued doubles
+fit@specification                   # selected reference and method
+fit@gene_status                     # adjusted, unsupported, or failed genes
+fit@diagnostics$input_actions       # audited lossy input actions
 summary(fit)
 ```
 
-Set `keep_model = TRUE` only when fitted coefficients, means, and dispersions
-are needed for detailed auditing; the default avoids retaining these large
-objects.
-
-## Command-line interface
-
-```bash
-combat-ref \
-  --counts counts.tsv \
-  --metadata metadata.csv \
-  --batch-column batch \
-  --group-column condition \
-  --output adjusted_counts.tsv \
-  --diagnostics-json diagnostics.json \
-  --gene-status gene_status.tsv
-```
-
-A normal run prints compact Input, Configuration, Design, Normalization,
-Reference selection, Correction, Warning, and Output sections. Useful modes:
-
-| Option | Purpose |
-|---|---|
-| `--validate-only` | Check files, alignment, design, and normalization without fitting |
-| `--verbose` | Add model details and stage timings |
-| `--quiet` | Print errors only for pipeline use |
-| `--no-color` | Produce plain-text logs |
-| `--log-file PATH` | Save a plain-text run log |
-| `--diagnostics-json PATH` | Write machine-readable diagnostics |
-| `--gene-status PATH` | Write the per-gene status table |
-
-Supported files are TSV, CSV, clearly delimited TXT, `.tsv.gz`, and `.csv.gz`.
-Exit codes are `0` success, `2` input, `3` design, `4` fit/mapping, and `5`
-output writing.
-
 ## Input safety
 
-Safe, unambiguous conversions are announced and stored in
-`fit$diagnostics$input_actions`:
-
-- data frames and numeric character columns to a numeric matrix;
-- a unique first gene-ID column to row names;
-- integer storage to numeric doubles;
-- batch and group vectors to factors;
-- a one-level group to `NULL`;
-- metadata reordering when sample identifiers match exactly;
-- transposition only when orientation is unambiguous;
-- case-insensitive method names to their canonical spelling.
-
-Potentially consequential conversions require explicit opt-in:
+Fractional values are rounded by default, announced in normal and verbose
+output, and stored in `fit@diagnostics$input_actions`. Strict rejection is
+available with:
 
 ```r
-combat_ref(..., fractional_counts = "round")
-combat_ref(..., duplicate_genes = "sum")
+combat_ref_ql(..., fractional_counts = "error")
 ```
 
 Negative, missing, infinite, unparseable, ambiguous, or normalized inputs remain
@@ -189,16 +125,16 @@ reference batch, preserving group, covariates, and sample-specific offsets.
 
 Automatic-reference scores use fresh intercept-bearing designs within each
 batch. Missing factor levels and non-estimable terms are handled explicitly and
-recorded. The baseline fit uses tagwise NB dispersion. With edgeR 4, the
-experimental QL fit uses a global NB dispersion and stores it separately from
-both baseline tagwise and moderated QL dispersions.
+recorded. edgeR v4 QL fitting estimates a global underlying NB dispersion and
+stores it separately from prior and posterior QL dispersions. Only the NB
+dispersion enters the mid-P probability and quantile functions.
 
 See the [statistical methodology vignette](vignettes/statistical-methodology.Rmd)
 for equations, assumptions, and implementation details.
 
 ## Limitations
 
-- The QL-assisted pathway has not passed broad simulation or external
+- The QL-first pathway has not passed broad simulation or external
   real-data validation and must not be considered production-ready.
 - Automatic-reference stability is not yet bootstrapped; selection frequency
   is therefore not reported.
@@ -210,10 +146,9 @@ for equations, assumptions, and implementation details.
 
 ## Documentation
 
-- [Migration guide](MIGRATION.md)
 - [Changelog](CHANGELOG.md)
 - [Release notes](NEWS.md)
-- [Implementation report](docs/IMPLEMENTATION_REPORT.md)
+- [Implementation report](IMPLEMENTATION_REPORT.md)
 - [Validation report](validation/VALIDATION_REPORT.md)
 
 ## Citation

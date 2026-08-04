@@ -1,40 +1,16 @@
-# Validation report — 0.1.0
+# Validation report — 0.2.0
 
-## Status
+Unit tests cover the new API, S7 validation, typed failures, dispersion
+separation, deterministic transport, zero preservation, and chunk equivalence.
+The reproducible smoke simulation in `validation/simulation.R` checks dimensions,
+integer-valued double output, and a fixed reference on synthetic NB counts.
 
-This release has deterministic unit and integration coverage, but it has not
-passed a broad simulation or external real-data validation gate. It must not be
-described as validated, superior, or production ready.
+This is an implementation smoke check, not broad statistical validation.
+External real-data validation, predefined multi-scenario simulations, and
+operating-characteristic assessment remain required. No production-readiness,
+superiority, FDR, power, or biological-signal preservation claim is made.
 
-The follow-up statistical tests verify that local reference-score designs have
-an intercept, QL fitting uses a global rather than tagwise NB dispersion, and
-mapped counts remain exact non-negative doubles above the 32-bit integer range.
-Input and CLI tests verify audited lossless conversions, explicit opt-in for
-lossy conversions, validation-only mode, and machine-readable diagnostics.
-These are correctness tests, not biological validation.
-
-## Reproducible smoke simulation
-
-`validation/simulation.R` generates 200 NB genes across two balanced batches
-and two biological groups with seed 104729. Batch B has a 1.8-fold simulated
-mean multiplier; half the genes have a two-fold group effect. The reference is
-fixed to batch A.
-
-| Metric | Result |
-|---|---:|
-| Raw median B/A mean ratio | 1.7112 |
-| Adjusted median B/A mean ratio | 1.6579 |
-| Unsupported genes | 0 |
-
-The correction moved the simple batch ratio toward one only modestly. This
-single smoke scenario is insufficient for type-I error, FDR, power, signal
-preservation, reference stability, runtime, or memory claims.
-
-## Gate for 0.2.0
-
-Before 0.2.0, run the predefined multi-scenario study covering 2–5 batches,
-balanced/unbalanced groups, depth/composition shifts, zeros, outliers,
-confounding failures, null effects, and sparse/widespread DE. Compare direct
-edgeR QL analysis of raw counts, the package baseline, and QL-assisted
-diagnostics. Predefine acceptable false-positive, FDR, bias, and biological
-signal-preservation margins before reading results.
+On R 4.6.1 with seed 104729, 200 genes, 12 samples, and two batches, the raw
+median B/A mean ratio was 1.7112 and the adjusted ratio was 1.6667; zero genes
+were unsupported. This modest movement toward one is not evidence of general
+correction quality.

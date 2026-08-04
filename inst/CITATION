@@ -7,3 +7,12 @@ bibentry(
   doi = "10.1016/j.csbj.2024.12.010",
   pmid = "39802213"
 )
+
+bibentry(
+  bibtype = "Manual",
+  title = "ComBat-refQL: QL-First Reference-Batch RNA-Seq Correction",
+  author = person("Thomas", "Sirchi"),
+  year = "2026",
+  note = "R package version 0.2.0",
+  url = "https://github.com/Thokas99/ComBat-refQL"
+)
