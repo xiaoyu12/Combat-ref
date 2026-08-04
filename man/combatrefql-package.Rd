@@ -4,15 +4,17 @@
 \name{combatrefql-package}
 \alias{combatrefql}
 \alias{combatrefql-package}
-\title{combatrefql: reference-batch RNA-seq count correction}
+\title{ComBat-refQL: QL-first reference-batch RNA-seq correction}
 \description{
-Negative-binomial correction with TMMwsp normalization, counterfactual
-reference prediction, and optional quasi-likelihood diagnostics.
+Robust edgeR v4 quasi-likelihood counterfactual means with deterministic
+negative-binomial mid-P quantile transport toward one reference batch.
 }
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://github.com/Thokas99/ComBat-refQL}
   \item \url{https://thokas99.github.io/ComBat-refQL/}
+  \item Report bugs at \url{https://github.com/Thokas99/ComBat-refQL/issues}
 }
 
 }
