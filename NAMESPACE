@@ -3,4 +3,3 @@
 export(CombatRefQLFit)
 export(CombatRefQLSummary)
 export(combat_ref_ql)
-importFrom(jsonlite,toJSON)
