@@ -12,6 +12,6 @@ operating-characteristic assessment remain required. No production-readiness,
 superiority, FDR, power, or biological-signal preservation claim is made.
 
 On R 4.6.1 with seed 104729, 200 genes, 12 samples, and two batches, the raw
-median B/A mean ratio was 1.7112 and the adjusted ratio was 1.6667; zero genes
+median B/A mean ratio was 1.7112 and the adjusted ratio was 1.6579; zero genes
 were unsupported. This modest movement toward one is not evidence of general
 correction quality.
