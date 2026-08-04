@@ -7,7 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-ComBat-refQL 0.3.0 fits raw counts with edgeR v4:
+ComBat-refQL 0.3.1 fits raw counts with edgeR v4:
 
 ```r
 edgeR::glmQLFit(dge, design, dispersion = NULL, robust = TRUE, legacy = FALSE)

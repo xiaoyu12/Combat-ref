@@ -83,4 +83,4 @@ A future production-readiness claim would require independent real-data
 validation, broad preregistered simulations, documented failure boundaries,
 stable reference selection, reproducible performance measurements, and clear
 guidance for downstream inference. None of those claims is made in version
-0.3.0.
+0.3.1.

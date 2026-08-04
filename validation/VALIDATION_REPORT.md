@@ -1,4 +1,4 @@
-# Validation report — 0.3.0
+# Validation report — 0.3.1
 
 Unit tests cover the new API, S7 validation, typed failures, dispersion
 separation, deterministic transport, zero preservation, chunk equivalence,

@@ -1,3 +1,9 @@
+# combatrefql 0.3.1
+
+- Remove the interactive progress bar while retaining concise stage messages
+  and durable verbose mapping updates.
+- Use the darkly Bootstrap theme for the pkgdown website.
+
 # combatrefql 0.3.0
 
 - Automatic reference scoring now adjusts for locally estimable biological

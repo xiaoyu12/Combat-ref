@@ -1,4 +1,4 @@
-# ComBat-refQL 0.3.0 implementation report
+# ComBat-refQL 0.3.1 implementation report
 
 The package has one orchestrator, one edgeR v4 QL fit, and one deterministic NB
 mid-P kernel. Input preparation, normalization, support assessment, design

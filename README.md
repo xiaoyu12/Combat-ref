@@ -6,7 +6,7 @@
 
 [![R CMD check](https://github.com/Thokas99/ComBat-refQL/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Thokas99/ComBat-refQL/actions/workflows/R-CMD-check.yaml)
 [![pkgdown](https://github.com/Thokas99/ComBat-refQL/actions/workflows/pkgdown.yaml/badge.svg)](https://thokas99.github.io/ComBat-refQL/)
-[![Version](https://img.shields.io/badge/version-0.3.0-4C78A8.svg)](NEWS.md)
+[![Version](https://img.shields.io/badge/version-0.3.1-4C78A8.svg)](NEWS.md)
 [![Lifecycle](https://img.shields.io/badge/lifecycle-experimental-EF9B20.svg)](#scientific-status)
 [![R](https://img.shields.io/badge/R-%E2%89%A5%204.3-276DC3.svg)](https://www.r-project.org/)
 [![edgeR](https://img.shields.io/badge/edgeR-%E2%89%A5%204.2-87B13F.svg)](https://bioconductor.org/packages/edgeR/)
@@ -218,6 +218,6 @@ The newly written ComBat-refQL implementation is available under the [MIT Licens
 
 <div align="center">
 
-**ComBat-refQL 0.3.0** · focused QL modelling · auditable reference transport · explicit limitations
+**ComBat-refQL 0.3.1** · focused QL modelling · auditable reference transport · explicit limitations
 
 </div>

@@ -24,7 +24,7 @@ combat_ref_ql <- function(counts, batch, group = NULL, covariates = NULL,
   fractional_counts <- match.arg(fractional_counts)
   verbosity <- match.arg(verbosity)
   if (!identical(normalization, "TMMwsp"))
-    input_error("{.arg normalization} must be {.val TMMwsp} in version 0.3.0.")
+    input_error("{.arg normalization} must be {.val TMMwsp} in version 0.3.1.")
   if (length(chunk_size) != 1L || is.na(chunk_size) || chunk_size < 1 ||
       chunk_size != as.integer(chunk_size))
     input_error("{.arg chunk_size} must be one positive integer.")
@@ -64,7 +64,6 @@ combat_ref_ql <- function(counts, batch, group = NULL, covariates = NULL,
   reporter$start_mapping(mapping_steps)
   transported <- transport_counts(prepared$counts, keep, prepared$batch,
     selected$reference, design$matrix, fit, chunk_size, reporter$mapping)
-  reporter$finish_mapping()
   timings <- rbind(timings, timing_row("mapping", start))
   timings <- rbind(timings, data.frame(stage = "total", seconds = proc.time()[["elapsed"]] - total_start))
   built <- build_combatrefql_result(prepared, dge, design, selected, fit,
