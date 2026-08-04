@@ -25,7 +25,10 @@ CombatRefQLSummary <- S7::new_class("CombatRefQLSummary", properties = list(
 }, validator = function(self) {
   errors <- character()
   if (nrow(self@overview) != 1L) errors <- c(errors, "@overview must have one row")
-  if (!all(c("batch", "samples", "reference_score", "selected") %in% names(self@batches))) errors <- c(errors, "@batches is missing required columns")
+  batch_columns <- c("batch", "samples", "reference_score", "selected",
+    "selection_method", "local_formula", "local_columns", "dropped_columns",
+    "missing_levels", "fallback", "fallback_reason", "residual_df")
+  if (!all(batch_columns %in% names(self@batches))) errors <- c(errors, "@batches is missing required columns")
   if (!all(c("outcome", "genes", "proportion") %in% names(self@gene_outcomes))) errors <- c(errors, "@gene_outcomes is missing required columns")
   if (length(errors)) errors
 })

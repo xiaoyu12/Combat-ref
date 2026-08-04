@@ -31,6 +31,12 @@ CombatRefQLFit <- S7::new_class("CombatRefQLFit", properties = list(
   }
   if (!all(c("gene", "status", "reason", "adjusted", "zero_batches", "fit_valid", "mapping_valid") %in% names(self@gene_status))) errors <- c(errors, "@gene_status is missing required columns")
   if (!all(c("batches", "mapping", "mapping_failures", "timing", "input_actions", "warnings", "outcomes", "ql") %in% names(self@diagnostics))) errors <- c(errors, "@diagnostics is missing required tables")
+  batch_columns <- c("batch", "samples", "reference_score", "selected",
+    "selection_method", "local_formula", "local_columns", "dropped_columns",
+    "missing_levels", "fallback", "fallback_reason", "residual_df")
+  if (is.data.frame(self@diagnostics$batches) &&
+      !all(batch_columns %in% names(self@diagnostics$batches)))
+    errors <- c(errors, "reference diagnostics are missing required columns")
   if (length(self@specification$reference_batch) != 1L || !self@specification$reference_batch %in% self@samples$batch) errors <- c(errors, "reference batch is invalid")
   outcomes <- self@diagnostics$outcomes
   if (is.data.frame(outcomes) && nrow(outcomes)) {

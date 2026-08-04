@@ -108,3 +108,19 @@ align_covariates <- function(x, counts) {
   }
   x
 }
+
+normalize_counts <- function(inputs, method) {
+  edgeR::normLibSizes(edgeR::DGEList(inputs$counts), method = method)
+}
+
+assess_support <- function(counts, batch) {
+  supported <- Reduce(`&`, lapply(levels(batch), function(value) {
+    rowSums(counts[, batch == value, drop = FALSE]) > 0
+  }))
+  if (sum(supported) < 2L) {
+    abort_combatrefql("combatrefql_ql_error",
+      "Fewer than two genes have count support in every batch.",
+      stage = "ql_fit", affected_genes = sum(supported))
+  }
+  supported
+}

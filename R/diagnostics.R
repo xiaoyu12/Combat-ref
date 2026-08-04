@@ -20,6 +20,20 @@ make_outcomes <- function(gene_status) {
     proportion = genes / nrow(gene_status), stringsAsFactors = FALSE)
 }
 
+build_diagnostics <- function(selected, transported, timings, input_actions,
+                              warnings, gene_status, ql) {
+  list(
+    batches = selected$batches,
+    mapping = transported$mapping,
+    mapping_failures = transported$failures,
+    timing = timings,
+    input_actions = input_actions,
+    warnings = warnings,
+    outcomes = make_outcomes(gene_status),
+    ql = ql
+  )
+}
+
 empty_warnings <- function() data.frame(stage = character(), class = character(), message = character())
 
 timing_row <- function(stage, start) data.frame(stage = stage, seconds = proc.time()[["elapsed"]] - start)
