@@ -12,8 +12,8 @@ mapping. It preserves count-matrix dimensions, reports unsupported genes, and
 records every automatic input repair.
 
 > [!IMPORTANT]
-> The QL-assisted pathway is experimental and diagnostic. For differential
-> expression, analyze raw counts directly with an edgeR QL model containing
+> The QL-assisted pathway is experimental. For proper differential
+> expression, analyze raw counts directly and use a model containing
 > batch and biological group.
 
 ## Table of contents
