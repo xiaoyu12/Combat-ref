@@ -8,16 +8,6 @@
 
 ComBat-refQL provides a compact workflow for adjusting non-reference RNA-seq batches toward a selected reference batch. It combines current edgeR model-fitting infrastructure with deterministic negative-binomial count transport and returns a structured S7 result.
 
-The package focuses on a practical analysis experience:
-
-- one main fitting function;
-- automatic or explicit reference selection;
-- support for biological groups and sample covariates;
-- validated inputs and informative errors;
-- concise progress reporting;
-- deterministic, chunked count transport;
-- structured `print()` and `summary()` output.
-
 ComBat-refQL is an independent package inspired by the reference-batch strategy described in ComBat-ref and the count-modelling foundations of ComBat-seq.
 
 ## Installation
