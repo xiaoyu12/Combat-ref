@@ -2,7 +2,7 @@
 % Please edit documentation in R/combat-ref-ql.R
 \name{combat_ref_ql}
 \alias{combat_ref_ql}
-\title{Fit ComBat-refQL reference-batch correction}
+\title{Fit ComBat-refQL reference-batch adjustment}
 \usage{
 combat_ref_ql(
   counts,
@@ -40,7 +40,6 @@ batch is selected from biologically adjusted within-batch QL fits.}
 A validated \link{CombatRefQLFit} object.
 }
 \description{
-Fits robust edgeR v4 quasi-likelihood counterfactual means and transports
-non-reference counts with deterministic negative-binomial mid-P quantiles.
-Quasi-dispersion is never used as an NB distribution parameter.
+Fits model-based reference-counterfactual means with edgeR v4 and adjusts
+non-reference counts by deterministic negative-binomial mid-P transport.
 }

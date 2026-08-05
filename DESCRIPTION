@@ -1,15 +1,20 @@
 Package: combatrefql
-Title: ComBat-refQL QL-First Reference-Batch RNA-Seq Correction
-Version: 0.3.1
+Title: ComBat-refQL Reference-Batch Adjustment for RNA-Seq Counts
+Version: 0.3.2
 Authors@R: c(
-    person("Xiaoyu", "Zhang", role = "ctb"),
+    person(
+      "Xiaoyu",
+      "Zhang",
+      role = "ctb",
+      comment = "ComBat-ref method and original implementation"
+    ),
     person("Thomas", "Sirchi", role = c("aut", "cre"), email = "thomasirchi@gmail.com")
   )
-Description: Corrects raw RNA-seq counts toward one reference batch using
-    robust edgeR version 4 quasi-likelihood fitted counterfactual means and
-    deterministic negative-binomial mid-P quantile transport. The package
-    keeps negative-binomial and quasi-likelihood dispersion quantities
-    separate and returns validated S7 objects with tidy diagnostics.
+Description: Provides a structured interface for adjusting raw RNA-seq counts
+    toward a selected reference batch. The package uses current edgeR
+    model-fitting infrastructure, model-based counterfactual means,
+    deterministic negative-binomial count transport, and validated S7 objects
+    with tidy diagnostics.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -27,7 +32,7 @@ Suggests:
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Config/testthat/edition: 3
-Config/roxygen2/version: 8.0.0
+Config/roxygen2/version: 8.1.0
 URL: https://github.com/Thokas99/ComBat-refQL,
     https://thokas99.github.io/ComBat-refQL/
 BugReports: https://github.com/Thokas99/ComBat-refQL/issues

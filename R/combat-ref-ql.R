@@ -1,8 +1,7 @@
-#' Fit ComBat-refQL reference-batch correction
+#' Fit ComBat-refQL reference-batch adjustment
 #'
-#' Fits robust edgeR v4 quasi-likelihood counterfactual means and transports
-#' non-reference counts with deterministic negative-binomial mid-P quantiles.
-#' Quasi-dispersion is never used as an NB distribution parameter.
+#' Fits model-based reference-counterfactual means with edgeR v4 and adjusts
+#' non-reference counts by deterministic negative-binomial mid-P transport.
 #'
 #' @param counts Numeric raw-count matrix with genes in rows and samples in columns.
 #' @param batch Sample batch vector, optionally named for automatic reordering.
@@ -24,7 +23,7 @@ combat_ref_ql <- function(counts, batch, group = NULL, covariates = NULL,
   fractional_counts <- match.arg(fractional_counts)
   verbosity <- match.arg(verbosity)
   if (!identical(normalization, "TMMwsp"))
-    input_error("{.arg normalization} must be {.val TMMwsp} in version 0.3.1.")
+    input_error("{.arg normalization} must be {.val TMMwsp}.")
   if (length(chunk_size) != 1L || is.na(chunk_size) || chunk_size < 1 ||
       chunk_size != as.integer(chunk_size))
     input_error("{.arg chunk_size} must be one positive integer.")

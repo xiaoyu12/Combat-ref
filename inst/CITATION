@@ -10,9 +10,22 @@ bibentry(
 
 bibentry(
   bibtype = "Manual",
-  title = "ComBat-refQL: QL-First Reference-Batch RNA-Seq Correction",
+  title = "ComBat-refQL: Reference-Batch Adjustment for RNA-Seq Counts",
   author = person("Thomas", "Sirchi"),
   year = "2026",
-  note = "R package version 0.3.1",
+  note = "R package version 0.3.2",
   url = "https://github.com/Thokas99/ComBat-refQL"
+)
+
+bibentry(
+  bibtype = "Article",
+  title = "ComBat-seq: batch effect adjustment for RNA-seq count data",
+  author = c(person("Yuqi", "Zhang"), person("Giovanni", "Parmigiani"),
+    person("W. Evan", "Johnson")),
+  journal = "NAR Genomics and Bioinformatics",
+  year = "2020",
+  volume = "2",
+  number = "3",
+  pages = "lqaa078",
+  doi = "10.1093/nargab/lqaa078"
 )

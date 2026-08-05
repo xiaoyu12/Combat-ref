@@ -1,13 +1,13 @@
 ---
-title: "QL-fitted means and NB mid-P transport"
+title: "Model-based means and NB mid-P transport"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{QL-fitted means and NB mid-P transport}
+  %\VignetteIndexEntry{Model-based means and NB mid-P transport}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-ComBat-refQL 0.3.1 fits raw counts with edgeR v4:
+ComBat-refQL 0.3.2 fits raw counts with the edgeR v4 model-fitting pipeline:
 
 ```r
 edgeR::glmQLFit(dge, design, dispersion = NULL, robust = TRUE, legacy = FALSE)
@@ -20,10 +20,9 @@ the reference counterfactual design. The QL fit coefficients and offsets define
 the observed and counterfactual means.
 
 The v4 pipeline estimates one global underlying negative-binomial dispersion.
-That `nb_dispersion` is the only dispersion passed to `pnbinom()`, `dnbinom()`,
-and `qnbinom()`. Genewise `ql_dispersion` and
-`posterior_ql_dispersion` describe residual quasi-likelihood variability; they
-do not define a count CDF and are never NB distribution parameters.
+That `nb_dispersion` supplies the dispersion for `pnbinom()`, `dnbinom()`, and
+`qnbinom()`. Genewise `ql_dispersion` and `posterior_ql_dispersion` describe
+residual quasi-likelihood variability and remain separate diagnostics.
 
 For observed count $y$, the deterministic mid-P probability is
 
@@ -69,6 +68,6 @@ selected unless the user supplies an explicit reference. Local QL and NB
 dispersion quantities remain separate under the same boundary used for the
 main model.
 
-Automatic reference selection remains heuristic: its score is not a formal
-measure of batch quality, the rule is not claimed to be optimal or validated,
-and selection stability is not yet bootstrapped.
+Automatic reference selection is a deterministic implementation score. The
+candidate diagnostics retain the information needed to evaluate its behaviour
+alongside study design and external quality-control evidence.

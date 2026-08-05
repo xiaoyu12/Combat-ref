@@ -7,7 +7,8 @@ new_reporter <- function(verbosity) {
   success <- function(message) if (!quiet) cli::cli_alert_success(message)
 
   list(
-    start = function() text("ComBat-refQL 0.3.1"),
+    start = function() text(sprintf("ComBat-refQL %s",
+      as.character(utils::packageVersion("combatrefql")))),
     success = success,
     info = text,
     warning = text,

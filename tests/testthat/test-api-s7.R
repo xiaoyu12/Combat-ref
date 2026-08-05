@@ -23,5 +23,12 @@ test_that("fit and summary printing orient without replay", {
   expect_match(paste(out, collapse="\n"), "(?s)ComBat-refQL fit.*Data.*Model.*Result", perl=TRUE)
   expect_equal(sum(grepl("Reference", out)), 1L)
   sum_out <- testthat::capture_messages(print(summary(fit)))
-  expect_match(paste(sum_out, collapse="\n"), "(?s)Design.*Reference.*QL model.*Gene outcomes.*Timing", perl=TRUE)
+  expect_match(paste(sum_out, collapse="\n"), "(?s)Design.*Reference.*edgeR model.*Gene outcomes.*Timing", perl=TRUE)
+})
+
+test_that("progress reports the package version", {
+  reporter <- new_reporter("normal")
+  output <- testthat::capture_messages(reporter$start())
+  expect_match(paste(output, collapse = "\n"),
+    paste("ComBat-refQL", packageVersion("combatrefql")), fixed = TRUE)
 })

@@ -4,10 +4,11 @@
 \name{combatrefql-package}
 \alias{combatrefql}
 \alias{combatrefql-package}
-\title{ComBat-refQL: QL-first reference-batch RNA-seq correction}
+\title{ComBat-refQL: reference-batch adjustment for RNA-seq counts}
 \description{
-Robust edgeR v4 quasi-likelihood counterfactual means with deterministic
-negative-binomial mid-P quantile transport toward one reference batch.
+A structured interface using edgeR v4 model fitting, model-based
+counterfactual means, deterministic negative-binomial mid-P transport, and
+validated S7 diagnostics.
 }
 \seealso{
 Useful links:
@@ -28,7 +29,7 @@ Authors:
 
 Other contributors:
 \itemize{
-  \item Xiaoyu Zhang [contributor]
+  \item Xiaoyu Zhang (ComBat-ref method and original implementation) [contributor]
 }
 
 }
