@@ -1,6 +1,6 @@
 Package: combatrefql
 Title: ComBat-refQL Reference-Batch Adjustment for RNA-Seq Counts
-Version: 0.3.2
+Version: 0.4.0
 Authors@R: c(
     person(
       "Xiaoyu",
@@ -12,9 +12,9 @@ Authors@R: c(
   )
 Description: Provides a structured interface for adjusting raw RNA-seq counts
     toward a selected reference batch. The package uses current edgeR
-    model-fitting infrastructure, model-based counterfactual means,
-    deterministic negative-binomial count transport, and validated S7 objects
-    with tidy diagnostics.
+    model-fitting infrastructure, quasi-likelihood-aware empirical-Bayes
+    batch contrasts, hierarchical batch-specific negative-binomial dispersion,
+    deterministic count transport, and validated S7 objects with tidy diagnostics.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

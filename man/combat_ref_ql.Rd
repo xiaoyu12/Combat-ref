@@ -10,6 +10,9 @@ combat_ref_ql(
   group = NULL,
   covariates = NULL,
   reference = NULL,
+  mean_shrinkage = c("ql_eb", "none"),
+  dispersion_model = c("batch_scaled", "shared"),
+  zero_policy = c("model", "preserve"),
   normalization = "TMMwsp",
   fractional_counts = c("round", "error"),
   chunk_size = 5000L,
@@ -27,6 +30,12 @@ combat_ref_ql(
 
 \item{reference}{Optional reference batch. When \code{NULL}, the minimum-dispersion
 batch is selected from biologically adjusted within-batch QL fits.}
+
+\item{mean_shrinkage}{QL-aware empirical-Bayes moderation or unmoderated contrasts.}
+
+\item{dispersion_model}{Batch-scaled hierarchical or shared NB dispersion.}
+
+\item{zero_policy}{Model-consistent mid-P mapping or preserved observed zeros.}
 
 \item{normalization}{edgeR library normalization method. Only \code{"TMMwsp"} is supported.}
 

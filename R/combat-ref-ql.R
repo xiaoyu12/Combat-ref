@@ -9,6 +9,9 @@
 #' @param covariates Optional sample-by-covariate data frame or matrix.
 #' @param reference Optional reference batch. When `NULL`, the minimum-dispersion
 #'   batch is selected from biologically adjusted within-batch QL fits.
+#' @param mean_shrinkage QL-aware empirical-Bayes moderation or unmoderated contrasts.
+#' @param dispersion_model Batch-scaled hierarchical or shared NB dispersion.
+#' @param zero_policy Model-consistent mid-P mapping or preserved observed zeros.
 #' @param normalization edgeR library normalization method. Only `"TMMwsp"` is supported.
 #' @param fractional_counts Round with an audit record, or reject fractional values.
 #' @param chunk_size Positive number of genes transported per chunk.
@@ -16,10 +19,17 @@
 #' @return A validated [CombatRefQLFit] object.
 #' @export
 combat_ref_ql <- function(counts, batch, group = NULL, covariates = NULL,
-                          reference = NULL, normalization = "TMMwsp",
+                          reference = NULL,
+                          mean_shrinkage = c("ql_eb", "none"),
+                          dispersion_model = c("batch_scaled", "shared"),
+                          zero_policy = c("model", "preserve"),
+                          normalization = "TMMwsp",
                           fractional_counts = c("round", "error"), chunk_size = 5000L,
                           verbosity = c("normal", "quiet", "verbose")) {
   call <- match.call()
+  mean_shrinkage <- match.arg(mean_shrinkage)
+  dispersion_model <- match.arg(dispersion_model)
+  zero_policy <- match.arg(zero_policy)
   fractional_counts <- match.arg(fractional_counts)
   verbosity <- match.arg(verbosity)
   if (!identical(normalization, "TMMwsp"))
@@ -54,19 +64,48 @@ combat_ref_ql <- function(counts, batch, group = NULL, covariates = NULL,
   reporter$success(sprintf("Selected reference: %s", selected$reference))
 
   start <- proc.time()[["elapsed"]]
-  fit <- fit_ql_model(dge[keep, , keep.lib.sizes = TRUE], design$matrix)
-  timings <- rbind(timings, timing_row("ql_fit", start))
-  reporter$success("Fitted robust edgeR v4 QL model")
+  supported <- dge[keep, , keep.lib.sizes = TRUE]
+  preliminary <- fit_ql_model(supported, design$matrix)
+  timings <- rbind(timings, timing_row("preliminary_ql_fit", start))
+  reporter$success("Fitted preliminary edgeR v4 QL model")
+
+  start <- proc.time()[["elapsed"]]
+  preliminary_phi <- matrix(as.numeric(preliminary$dispersion), sum(keep),
+    ncol(prepared$counts))
+  information <- effective_residual_information(design$matrix, prepared$batch,
+    preliminary$fitted.values, preliminary_phi, preliminary$weights)
+  dispersion <- estimate_batch_dispersion(supported, design$matrix,
+    prepared$batch, selected$reference, preliminary, information,
+    dispersion_model)
+  timings <- rbind(timings, timing_row("dispersion", start))
+  reporter$success(sprintf("Estimated %s NB dispersion model",
+    dispersion_model))
+
+  start <- proc.time()[["elapsed"]]
+  fit <- if (dispersion_model == "shared") preliminary else
+    fit_ql_model(supported, design$matrix, dispersion$dispersion)
+  timings <- rbind(timings, timing_row("final_ql_fit", start))
+  reporter$success("Fitted final edgeR v4 QL model")
+
+  start <- proc.time()[["elapsed"]]
+  shrinkage <- shrink_batch_effects(fit,
+    if (dispersion_model == "shared") as.numeric(fit$dispersion) else
+      dispersion$dispersion,
+    prepared$batch, selected$reference, mean_shrinkage)
+  timings <- rbind(timings, timing_row("mean_shrinkage", start))
+  reporter$success(sprintf("Estimated %s batch contrasts", mean_shrinkage))
 
   start <- proc.time()[["elapsed"]]
   mapping_steps <- length(setdiff(levels(prepared$batch), selected$reference)) * ceiling(sum(keep) / chunk_size)
   reporter$start_mapping(mapping_steps)
   transported <- transport_counts(prepared$counts, keep, prepared$batch,
-    selected$reference, design$matrix, fit, chunk_size, reporter$mapping)
+    selected$reference, design$matrix, fit, shrinkage, dispersion, zero_policy,
+    chunk_size, reporter$mapping)
   timings <- rbind(timings, timing_row("mapping", start))
   timings <- rbind(timings, data.frame(stage = "total", seconds = proc.time()[["elapsed"]] - total_start))
   built <- build_combatrefql_result(prepared, dge, design, selected, fit,
-    transported, keep, timings, call, normalization, chunk_size)
+    shrinkage, dispersion, transported, keep, timings, call, normalization,
+    mean_shrinkage, dispersion_model, zero_policy, chunk_size)
   if (nrow(built$warnings)) reporter$warning(built$warnings$message[[1L]])
   reporter$success("Constructed and validated result")
   reporter$finish(timings$seconds[timings$stage == "total"])

@@ -1,13 +1,11 @@
-# Validation Resources
+# Validation resources
 
-This directory restores source-only validation materials from earlier
-ComBat-refQL history.
+`simulation.R` runs the fast subset or the full 0.4.0 factorial study. The plan
+fixes scenarios and metrics; the report summarizes the resulting tidy TSV
+files. Full runs fetch the two upstream comparator implementations from pinned
+public commits into a temporary directory.
 
-- `simulations/source/`: simulation and plotting scripts from the research
-  workflow.
-- `real-data/gfrn/`: GFRN analysis source scripts and the small pathway gene
-  CSV retained for readability.
-- `real-data/nasa/`: NASA analysis source script.
-
-Generated plots, large count matrices, `.RData` workspaces, `.rds` objects and
-other unlicensed or bulky data artifacts are intentionally not restored.
+```sh
+Rscript validation/simulation.R fast
+Rscript validation/simulation.R full
+```

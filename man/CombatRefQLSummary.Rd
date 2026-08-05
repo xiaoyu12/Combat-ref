@@ -11,6 +11,8 @@ CombatRefQLSummary(
   batches,
   gene_outcomes,
   ql,
+  shrinkage,
+  dispersion,
   input_actions,
   warnings,
   timings
@@ -28,6 +30,10 @@ CombatRefQLSummary(
 \item{gene_outcomes}{Gene outcome counts and proportions.}
 
 \item{ql}{QL and NB dispersion diagnostics.}
+
+\item{shrinkage}{Batch-level QL-EB summaries.}
+
+\item{dispersion}{Batch-level NB dispersion summaries.}
 
 \item{input_actions}{Audited input transformations.}
 

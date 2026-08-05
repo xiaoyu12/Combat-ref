@@ -6,9 +6,9 @@
 \alias{combatrefql-package}
 \title{ComBat-refQL: reference-batch adjustment for RNA-seq counts}
 \description{
-A structured interface using edgeR v4 model fitting, model-based
-counterfactual means, deterministic negative-binomial mid-P transport, and
-validated S7 diagnostics.
+A structured interface using edgeR v4 model fitting, QL-aware empirical-Bayes
+batch contrasts, hierarchical batch-specific NB dispersion, deterministic
+mid-P transport, and validated S7 diagnostics.
 }
 \seealso{
 Useful links:

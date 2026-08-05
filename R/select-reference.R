@@ -72,6 +72,9 @@ select_reference <- function(dge, batch, group = NULL, covariates = NULL,
         fallback = NA,
         fallback_reason = NA_character_,
         residual_df = NA_integer_,
+        effective_residual_information = NA_real_,
+        second_best = FALSE,
+        score_margin = NA_real_,
         stringsAsFactors = FALSE
       )
     ))
@@ -100,6 +103,7 @@ select_reference <- function(dge, batch, group = NULL, covariates = NULL,
       fallback = local_design$fallback,
       fallback_reason = local_design$fallback_reason,
       residual_df = local_design$residual_df,
+      effective_residual_information = local_design$residual_df,
       stringsAsFactors = FALSE
     )
   })
@@ -110,11 +114,19 @@ select_reference <- function(dge, batch, group = NULL, covariates = NULL,
       "*" = "Ensure each batch has replicated, non-zero raw counts.", stage = "reference")
   }
   selected <- data$batch[which.min(data$reference_score)]
+  ordered <- order(data$reference_score)
+  second <- if (length(ordered) > 1L) data$batch[ordered[2L]] else NA_character_
+  margin <- if (length(ordered) > 1L)
+    data$reference_score[ordered[2L]] - data$reference_score[ordered[1L]] else
+    NA_real_
   data$selected <- data$batch == selected
+  data$second_best <- data$batch == second
+  data$score_margin <- margin
   data$selection_method <-
     "automatic_biologically_adjusted_minimum_nb_dispersion"
   data <- data[c("batch", "samples", "reference_score", "selected",
     "selection_method", "local_formula", "local_columns", "dropped_columns",
-    "missing_levels", "fallback", "fallback_reason", "residual_df")]
+    "missing_levels", "fallback", "fallback_reason", "residual_df",
+    "effective_residual_information", "second_best", "score_margin")]
   list(reference = selected, batches = data)
 }

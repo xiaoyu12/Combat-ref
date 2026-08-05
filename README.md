@@ -3,12 +3,13 @@
 **ComBat-refQL provides a clean R interface for reference-batch adjustment of
 RNA-seq count matrices.**
 
-It combines current edgeR model-fitting infrastructure with deterministic
-negative-binomial count transport, explicit reference selection, validated S7
-objects, and structured diagnostics.
+Its default method combines current edgeR model-fitting infrastructure,
+QL-aware empirical-Bayes batch contrasts, hierarchical batch-specific
+negative-binomial dispersion, deterministic count transport, explicit reference
+selection, validated S7 objects, and structured diagnostics.
 
 [![R CMD check](https://github.com/Thokas99/ComBat-refQL/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Thokas99/ComBat-refQL/actions/workflows/R-CMD-check.yaml)
-[![Version](https://img.shields.io/badge/version-0.3.2-4C78A8.svg)](DESCRIPTION)
+[![Version](https://img.shields.io/badge/version-0.4.0-4C78A8.svg)](DESCRIPTION)
 [![R](https://img.shields.io/badge/R-%E2%89%A5%204.3-276DC3.svg)](https://www.r-project.org/)
 [![edgeR](https://img.shields.io/badge/edgeR-%E2%89%A5%204.2-87B13F.svg)](https://bioconductor.org/packages/edgeR/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2E8B57.svg)](LICENSE)
@@ -26,8 +27,10 @@ transport, and results.
 - validated alignment of counts and sample metadata;
 - audited handling of fractional estimated counts;
 - TMMwsp normalization and edgeR v4 model fitting;
+- QL-aware empirical-Bayes source-versus-reference contrasts;
+- hierarchical batch-specific NB dispersion;
 - model-based reference-counterfactual means;
-- deterministic, chunked negative-binomial mid-P transport;
+- deterministic, chunked source-to-reference NB mid-P transport;
 - typed conditions and informative progress;
 - validated S7 fit and summary objects;
 - concise printing and tidy diagnostic components.
@@ -64,7 +67,9 @@ summary(fit_ql)
 adjusted_counts <- fit_ql@counts
 ```
 
-With `reference = NULL`, the default, ComBat-refQL selects the reference from
+The 0.4.0 defaults are `mean_shrinkage = "ql_eb"`,
+`dispersion_model = "batch_scaled"`, and `zero_policy = "model"`. With
+`reference = NULL`, ComBat-refQL selects the reference from
 biologically adjusted within-batch models. Fixed inputs produce a deterministic
 selection and transport result.
 
@@ -115,6 +120,9 @@ Data
 
 Model
   Model fitting:   edgeR v4
+  Mean shrinkage:  ql_eb
+  Dispersion:      batch_scaled
+  Zero policy:     model
   Normalization:  TMMwsp
   Transport:      negative-binomial mid-P
   Reference:      batch_A - explicit
@@ -138,6 +146,8 @@ fit_summary <- summary(fit_ql)
 adjusted_counts <- fit_ql@counts
 
 fit_summary@batches
+fit_summary@shrinkage
+fit_summary@dispersion
 fit_summary@gene_outcomes
 fit_summary@input_actions
 fit_ql@gene_status
@@ -150,19 +160,22 @@ design details. `fit_ql@gene_status` records the outcome for every gene.
 ## Implementation overview
 
 ComBat-refQL validates and aligns inputs, applies TMMwsp normalization, builds a
-full-rank design, and fits the count matrix with the edgeR v4 quasi-likelihood
-pipeline. For each non-reference sample, the design substitutes the reference
-batch indicators while retaining its biological group and covariates. This
-produces model-based reference-counterfactual means.
+full-rank design, and fits a preliminary edgeR v4 quasi-likelihood model. It
+estimates a moderated gene baseline and batch-wide dispersion multipliers,
+refits with a gene-by-sample NB dispersion matrix, and extracts each exact
+source-versus-reference contrast with its moderated QL variance. A
+heteroscedastic normal prior shrinks the contrasts before counterfactual means
+are constructed.
 
-Observed counts are transported to those means with deterministic
-negative-binomial mid-P probabilities. Transport runs by non-reference batch
-and gene chunk; `chunk_size` controls the temporary transport allocation. The
-implementation records input actions, reference scoring, mapping outcomes,
-model diagnostics, warnings, and timings in tidy components.
+Observed counts are transported from the fitted source NB distribution to the
+reference NB distribution with deterministic mid-P probabilities. The default
+models observed zeros with the same rule; `zero_policy = "preserve"` provides
+the 0.3.x compatibility behavior. Reference counts remain unchanged.
 
-The [statistical methodology vignette](vignettes/statistical-methodology.Rmd)
-documents the model, reference scoring, and transport equations.
+See the [statistical specification](docs/STATISTICAL_SPECIFICATION_0.4.0.md),
+[migration guide](docs/MIGRATION_0.4.0.md),
+[implementation report](docs/IMPLEMENTATION_REPORT_0.4.0.md), and
+[validation report](validation/VALIDATION_REPORT_0.4.0.md).
 
 ## Recommended analysis use
 

@@ -21,7 +21,7 @@ make_outcomes <- function(gene_status) {
 }
 
 build_diagnostics <- function(selected, transported, timings, input_actions,
-                              warnings, gene_status, ql) {
+                              warnings, gene_status, ql, shrinkage, dispersion) {
   list(
     batches = selected$batches,
     mapping = transported$mapping,
@@ -30,7 +30,9 @@ build_diagnostics <- function(selected, transported, timings, input_actions,
     input_actions = input_actions,
     warnings = warnings,
     outcomes = make_outcomes(gene_status),
-    ql = ql
+    ql = ql,
+    batch_contrasts = shrinkage$diagnostics,
+    dispersion = dispersion$diagnostics
   )
 }
 

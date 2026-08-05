@@ -1,6 +1,8 @@
 build_combatrefql_result <- function(prepared, dge, design, selected, fit,
-                                     transported, keep, timings, call,
-                                     normalization, chunk_size) {
+                                     shrinkage, dispersion, transported, keep,
+                                     timings, call, normalization,
+                                     mean_shrinkage, dispersion_model,
+                                     zero_policy, chunk_size) {
   gene_status <- make_gene_status(prepared$counts, prepared$batch, keep,
     transported$mapping_valid)
   mapping_warnings <- if (nrow(transported$failures)) data.frame(
@@ -9,9 +11,12 @@ build_combatrefql_result <- function(prepared, dge, design, selected, fit,
       sum(gene_status$status == "failed")), stringsAsFactors = FALSE) else
     empty_warnings()
   specification <- data.frame(
-    method = "QL-fitted counterfactual means with negative-binomial mid-P quantile transport",
+    method = sprintf("%s reference contrasts with %s NB mid-P transport",
+      mean_shrinkage, dispersion_model),
+    mean_shrinkage = mean_shrinkage, dispersion_model = dispersion_model,
+    zero_policy = zero_policy,
     normalization = normalization, transport = "negative-binomial mid-P",
-    preserve_zeros = TRUE, reference_batch = selected$reference,
+    preserve_zeros = zero_policy == "preserve", reference_batch = selected$reference,
     reference_selection = if (is.null(prepared$reference)) "automatic" else "explicit",
     chunk_size = chunk_size, stringsAsFactors = FALSE)
   samples <- data.frame(
@@ -23,12 +28,17 @@ build_combatrefql_result <- function(prepared, dge, design, selected, fit,
     stringsAsFactors = FALSE)
   ql <- data.frame(
     edgeR_pipeline = "v4", robust = TRUE, legacy = FALSE,
-    nb_dispersion = as.numeric(fit$dispersion),
+    nb_dispersion_min = min(dispersion$dispersion),
+    nb_dispersion_max = max(dispersion$dispersion),
     average_ql_dispersion = as.numeric(fit$average.ql.dispersion),
     median_posterior_ql_dispersion = stats::median(fit$s2.post),
     stringsAsFactors = FALSE)
   model <- list(
-    coefficients = fit$coefficients, nb_dispersion = as.numeric(fit$dispersion),
+    coefficients = fit$unshrunk.coefficients %||% fit$coefficients,
+    nb_dispersion = dispersion$reference,
+    reference_dispersion = dispersion$reference,
+    batch_dispersion_shifts = dispersion$shifts,
+    batch_dispersion_multipliers = dispersion$multipliers,
     ql_dispersion = fit$s2.prior, posterior_ql_dispersion = fit$s2.post,
     design = data.frame(samples = nrow(design$matrix),
       coefficients = ncol(design$matrix), rank = design$rank,
@@ -36,7 +46,8 @@ build_combatrefql_result <- function(prepared, dge, design, selected, fit,
       condition_number = design$condition_number),
     design_matrix = design$matrix)
   diagnostics <- build_diagnostics(selected, transported, timings,
-    prepared$input_actions, mapping_warnings, gene_status, ql)
+    prepared$input_actions, mapping_warnings, gene_status, ql, shrinkage,
+    dispersion)
   list(
     result = CombatRefQLFit(counts = transported$counts,
       specification = specification, samples = samples,
