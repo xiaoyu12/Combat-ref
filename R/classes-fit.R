@@ -61,9 +61,9 @@ CombatRefQLFit <- S7::new_class("CombatRefQLFit", properties = list(
   if (!all(mapping_columns %in% names(self@diagnostics$mapping)))
     errors <- c(errors, "mapping diagnostics are missing required columns")
   if (length(self@specification$reference_batch) != 1L || !self@specification$reference_batch %in% self@samples$batch) errors <- c(errors, "reference batch is invalid")
-  if (!all(c("mean_shrinkage", "dispersion_model", "zero_policy") %in%
+  if (!all(c("method", "normalization", "transport", "zero_handling") %in%
       names(self@specification))) errors <- c(errors,
-    "@specification is missing 0.4.0 method controls")
+    "@specification is missing the integrated 0.4.0 method description")
   if (!all(c("coefficients", "nb_dispersion", "reference_dispersion",
       "batch_dispersion_shifts", "batch_dispersion_multipliers",
       "ql_dispersion", "posterior_ql_dispersion", "design",

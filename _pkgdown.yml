@@ -1,11 +1,30 @@
 url: https://thokas99.github.io/ComBat-refQL/
 destination: site
+
 template:
   bootstrap: 5
   bslib:
-    bootswatch: darkly
+    bootswatch: flatly
+    primary: "#315B6D"
+    base_font: system-ui
+    code_font: ui-monospace
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github]
+
+reference:
+  - title: Fit reference-batch adjustment
+    contents:
+      - combat_ref_ql
+  - title: Result objects
+    contents:
+      - CombatRefQLFit
+      - CombatRefQLSummary
 
 articles:
-  - title: Statistical methodology
+  - title: Method and evidence
     contents:
       - statistical-methodology
+      - validation

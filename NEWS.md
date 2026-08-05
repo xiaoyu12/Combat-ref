@@ -1,28 +1,26 @@
 # combatrefql 0.4.0
 
-- Add QL-aware empirical-Bayes shrinkage of exact source-versus-reference
-  batch contrasts and make it the default mean pathway.
-- Add hierarchical batch-scaled negative-binomial dispersion estimation and
-  refit edgeR v4 with the resulting gene-by-sample NB dispersion matrix.
-- Keep moderated QL uncertainty separate from the NB dispersion parameters
-  used for count transport.
-- Transport from source to reference NB distributions with distinct
-  dispersions. `zero_policy = "model"` now applies the mid-P rule to zeros;
-  `zero_policy = "preserve"` provides the earlier behavior.
-- Add `mean_shrinkage` and `dispersion_model` controls for the four formal
-  comparator and ablation configurations.
-- Record contrast moderation, effective residual information, batch dispersion
-  shifts, transport events, and automatic-reference margins in validated tidy
-  diagnostics.
-- Preserve reference counts exactly. Saturated source strata receive a neutral
-  dispersion shift with `not_estimable` status; a zero-information reference
-  raises a typed statistical error.
-- Add deterministic statistical tests and a factorial validation study with
-  pinned ComBat-ref and ComBat-seq comparators.
-- Add the 0.4.0 statistical specification, migration guide, implementation
-  report, validation plan, validation report, and updated methodology vignette.
-- Restore pkgdown configuration with the `site/` destination so authored files
-  under `docs/` remain separate from generated website output.
+- Integrate QL-aware empirical-Bayes moderation of exact
+  source-versus-reference batch contrasts into the single `combat_ref_ql()`
+  method.
+- Estimate a moderated gene-dispersion baseline and reference-centred
+  batch-specific NB dispersion multipliers using continuous effective residual
+  information.
+- Refit edgeR v4 with gene-by-sample NB dispersions while keeping moderated QL
+  uncertainty separate from NB count-distribution parameters.
+- Transport non-reference observations from their fitted source mean and
+  dispersion to reference-counterfactual mean and dispersion with deterministic
+  NB mid-P mapping. Apply the same model rule to zero and positive counts.
+- Preserve reference counts exactly and record saturated or weak-information
+  dispersion strata explicitly.
+- Record contrast moderation, reference-selection margins, batch dispersion,
+  residual information, transport events, gene outcomes, and convergence in
+  validated tidy diagnostics.
+- Expand mathematical unit tests and factorial simulation validation. Add
+  reproducible GFRN and NASA GeneLab workflows with pinned ComBat-ref and
+  ComBat-seq comparisons.
+- Consolidate the public interface around one statistical pathway and refresh
+  the README, methodology vignette, validation report, and pkgdown site.
 
 # combatrefql 0.3.2
 
@@ -37,7 +35,7 @@
 
 - Remove the interactive progress bar while retaining concise stage messages
   and durable verbose mapping updates.
-- Add the darkly Bootstrap theme for the pkgdown website.
+- Add a Bootstrap theme for the pkgdown website.
 
 # combatrefql 0.3.0
 
@@ -56,8 +54,9 @@
 # combatrefql 0.2.0
 
 - Establish `combat_ref_ql()` as the focused fitting interface.
-- Use edgeR v4 quasi-likelihood fitting, model-based reference-counterfactual
-  means, and deterministic negative-binomial mid-P transport.
+- Use edgeR v4 quasi-likelihood fitting, model-based
+  reference-counterfactual means, and deterministic negative-binomial mid-P
+  transport.
 - Introduce validated S7 `CombatRefQLFit` and `CombatRefQLSummary` objects,
   typed conditions, audited fractional-count handling, concise progress, and
   tidy diagnostics.

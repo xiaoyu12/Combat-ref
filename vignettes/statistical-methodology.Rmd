@@ -1,57 +1,51 @@
 ---
-title: "QL-EB contrasts and batch-scaled NB transport"
+title: "Statistical methodology"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{QL-EB contrasts and batch-scaled NB transport}
+  %\VignetteIndexEntry{Statistical methodology}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-ComBat-refQL 0.4.0 adjusts a count matrix toward a selected reference batch.
-The default pathway estimates batch effects on both the mean and NB dispersion
-scales while retaining biological groups and supplied covariates.
+ComBat-refQL adjusts RNA-seq counts toward one observed reference batch. The
+method combines QL-moderated batch-effect estimation, hierarchical
+reference-centred NB dispersion, counterfactual prediction, and deterministic
+count transport. Biological groups and supplied covariates remain in the mean
+model throughout.
 
-## Mean and dispersion models
+## Mean model and estimand
 
-After TMMwsp normalization, the mean model is
+After TMMwsp normalization, ComBat-refQL fits
 
 $$
-\log\mu_{gj}=\log L_j+X_j\beta_g+\gamma_{g,b(j)}.
+\log\mu_{gj}=\log L_j+X_j\beta_g+\gamma_{g,b(j)},
 $$
 
-For reference batch $r$, each source contrast is
+where $L_j$ is the effective library size, $X_j$ contains biological variables,
+and $\gamma_{g,b(j)}$ is the gene-specific batch coefficient. For reference
+batch $r$, the source-batch estimand is
 
 $$\delta_{gb}=\gamma_{gb}-\gamma_{gr}.$$
 
-The NB dispersion hierarchy is
+The design must be full rank. Batch contrasts require biological overlap that
+identifies batch separately from biology.
 
-$$
-\log\phi_{gb}=f(A_g)+u_g+d_b,\qquad d_r=0.
-$$
+## QL uncertainty and empirical-Bayes moderation
 
-Thus $\phi_{gb}=\phi_{gr}\exp(d_b)$. The model contains a moderated gene
-baseline and one batch-wide multiplier, without a gene-by-batch interaction.
-
-The package first calls edgeR v4 `glmQLFit()` with shared dispersion. Working
-weights from that fit determine continuous batch-specific residual information.
-`estimateDisp()` supplies the moderated baseline, and a weighted NB likelihood
-estimates each batch multiplier. The mean model is then refitted with the
-resulting gene-by-sample NB dispersion matrix.
-
-## QL-aware contrast moderation
-
-The final fit supplies
+The final edgeR v4 fit supplies an exact source-versus-reference contrast and
+its moderated QL-scaled variance:
 
 $$
 \widehat\delta_{gb}\mid\delta_{gb}\approx
 N(\delta_{gb},s^2_{gb,\mathrm{QL}}).
 $$
 
-For each source batch, ComBat-refQL fits
+For every non-reference batch, ComBat-refQL fits one heteroscedastic normal
+prior,
 
-$$\delta_{gb}\sim N(m_b,\tau_b^2)$$
+$$\delta_{gb}\sim N(m_b,\tau_b^2),$$
 
-by marginal maximum likelihood and uses
+by profile marginal maximum likelihood. The posterior mean is
 
 $$
 \widetilde\delta_{gb}=
@@ -59,64 +53,93 @@ $$
 \frac{s^2_{gb,\mathrm{QL}}}{\tau_b^2+s^2_{gb,\mathrm{QL}}}m_b.
 $$
 
-Precise contrasts stay near their raw estimates; uncertain contrasts move
-toward the batch prior mean. At $\tau_b^2=0$, all supported contrasts pool to
-$m_b$.
+Precise contrasts stay near their fitted values; uncertain contrasts move
+toward the batch prior mean. At $\tau_b^2=0$, supported contrasts pool to
+$m_b$. Invalid uncertainty and insufficient supported genes receive explicit
+diagnostic status.
 
-NB and QL dispersions have separate roles. `fit$s2.post` scales contrast
-covariance. Only the final NB dispersions enter count probabilities.
+QL quasi-dispersion quantifies uncertainty in the fitted mean coefficients. It
+never enters a negative-binomial probability calculation.
+
+## Hierarchical batch-specific NB dispersion
+
+ComBat-refQL models the NB dispersion as
+
+$$
+\log\phi_{gb}=f(A_g)+u_g+d_b,\qquad d_r=0,
+$$
+
+or equivalently
+
+$$\phi_{gb}=\phi_{gr}\exp(d_b).$$
+
+`edgeR::estimateDisp()` supplies the moderated gene baseline. A weighted NB
+likelihood estimates one batch-wide multiplier for each batch; 0.4.0 contains
+no gene-by-batch dispersion interaction. The mean model is then refitted using
+the resulting gene-by-sample NB dispersion matrix.
 
 ## Effective residual information
 
-The design-only diagnostic uses
+The initial design diagnostic is
 
-$$H^{(0)}=X(X^TX)^{-1}X^T.$$
+$$H^{(0)}=X(X^TX)^{-1}X^T,$$
 
-The fitted diagnostic uses gene-level working weights:
+and its batch contribution is
 
-$$H_g=W_g^{1/2}X(X^TW_gX)^{-1}X^TW_g^{1/2}.$$
+$$\nu_b^{(0)}=\sum_{j:b(j)=b}(1-h^{(0)}_{jj}).$$
 
-For batch $b$, $\nu_{gb}=\sum_{j:b(j)=b}(1-h_{gjj})$ and the precision is
+After preliminary fitting, working weights define
+
+$$H_g=W_g^{1/2}X(X^TW_gX)^{-1}X^TW_g^{1/2},$$
+
+$$\nu_{gb}=\sum_{j:b(j)=b}(1-h_{gjj}).$$
+
+The dispersion precision contribution is
 
 $$p_{gb}=\{\psi_1(\nu_{gb}/2)\}^{-1}.$$
 
-Saturated strata therefore provide zero dispersion information. Weak strata
-contribute continuously. A non-estimable source uses a neutral multiplier; a
-zero-information reference cannot identify the full batch-scaled model.
+This contribution increases continuously with residual information and is zero
+when the stratum is saturated. A source batch with no dispersion information
+receives the identified neutral shift $d_b=0$ and `not_estimable` status. The
+reference batch must contain positive dispersion information; otherwise the
+fit raises a typed statistical error.
 
-## Counterfactual transport
+## Counterfactual mean and deterministic transport
 
 For a source observation, the reference-counterfactual mean is
 
 $$\mu^{(r)}_{gj}=\mu_{gj}\exp(-\widetilde\delta_{gb}).$$
 
-The deterministic mid-P probability and target quantile are
+Given observed count $y$, ComBat-refQL calculates
 
 $$
 q=F_b(y-1;\mu_{gj},\phi_{gb})+
 \tfrac12P_b(Y=y;\mu_{gj},\phi_{gb}),
 $$
 
-$$
-y^*=F_r^{-1}(q;\mu^{(r)}_{gj},\phi_{gr}).
-$$
+then maps to
 
-The default applies this rule to zero counts. `zero_policy = "preserve"` keeps
-observed zeros unchanged. Transport is deterministic and chunked. Numerical
-failure rolls the complete gene back to its original counts. Reference samples
-are never passed to transport and are checked for exact invariance.
+$$y^*=F_r^{-1}(q;\mu^{(r)}_{gj},\phi_{gr}).$$
 
-## Reference selection
+For $y=0$, this gives $q=\tfrac12P_b(Y=0)$. Tail probabilities are clipped to
+finite machine-safe bounds. Transport is deterministic and chunk size changes
+allocation only. A numerical failure rolls the complete gene row back to its
+original counts.
 
-An explicit reference gives the clearest target. With `reference = NULL`, the
-package builds a fresh locally estimable biological design inside each batch,
-fits an edgeR v4 candidate model, and selects the smallest valid NB score. The
-diagnostics retain every score, the selected and second-best candidates, the
-margin, local design terms, omissions, and residual information.
+## Reference selection and preservation
 
-## Method controls
+An explicit reference provides the clearest target. With `reference = NULL`,
+ComBat-refQL builds a locally estimable biological design in each batch, fits
+an edgeR candidate model, and selects the smallest valid NB score. Diagnostics
+retain every score, the runner-up, the margin, and local-design details.
 
-The default is `ql_eb + batch_scaled`. The combinations `none + shared`,
-`ql_eb + shared`, and `none + batch_scaled` provide the formal comparator and
-single-component ablations. See the statistical specification and migration
-guide for boundary behavior and interpretation.
+Reference samples bypass transport. The implementation verifies exact equality
+between input and output reference counts before constructing the result.
+
+## Interpreting adjusted counts
+
+Adjusted counts represent a model-based reference-batch counterfactual. They
+support batch-aligned visualization, exploratory analysis, and workflows that
+require count-scale data. Differential-expression inference uses the original
+counts with batch and biological variables represented in the statistical
+design.

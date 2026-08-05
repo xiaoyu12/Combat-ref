@@ -6,9 +6,8 @@ S7::method(print, CombatRefQLFit) <- function(x, ...) {
   cli::cli_text("  {format(nrow(x@counts), big.mark = ',')} genes x {ncol(x@counts)} samples")
   cli::cli_text("  {length(unique(x@samples$batch))} batches - {length(unique(stats::na.omit(x@samples$group)))} biological groups")
   cli::cli_h2("Model"); cli::cli_text("  Model fitting:   edgeR v4")
-  cli::cli_text("  Mean shrinkage:  {x@specification$mean_shrinkage}")
-  cli::cli_text("  Dispersion:      {x@specification$dispersion_model}")
-  cli::cli_text("  Zero policy:     {x@specification$zero_policy}")
+  cli::cli_text("  Batch contrasts: QL-moderated")
+  cli::cli_text("  Dispersion:      hierarchical NB")
   cli::cli_text("  Normalization:  {x@specification$normalization}")
   cli::cli_text("  Transport:      negative-binomial mid-P")
   selection <- if (x@specification$reference_selection == "automatic") "automatically selected" else "explicit"

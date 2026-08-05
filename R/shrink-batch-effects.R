@@ -26,17 +26,10 @@ fit_normal_eb <- function(delta, variance) {
     convergence = TRUE)
 }
 
-shrink_batch_effects <- function(fit, dispersion, batch, reference,
-                                 method = c("ql_eb", "none")) {
-  method <- match.arg(method)
+shrink_batch_effects <- function(fit, dispersion, batch, reference) {
   rows <- lapply(setdiff(levels(batch), reference), function(source) {
     contrast <- contrast_covariance(fit, dispersion, source, reference)
-    if (method == "none") {
-      eb <- list(mean = NA_real_, variance = NA_real_, weight = rep(1,
-        nrow(contrast)), posterior = contrast$raw_delta,
-        valid = is.finite(contrast$raw_delta), status = "unmoderated",
-        convergence = TRUE)
-    } else eb <- fit_normal_eb(contrast$raw_delta, contrast$ql_variance)
+    eb <- fit_normal_eb(contrast$raw_delta, contrast$ql_variance)
     transform(contrast, prior_mean = eb$mean, prior_variance = eb$variance,
       shrinkage_weight = eb$weight, posterior_delta = eb$posterior,
       valid = eb$valid, status = eb$status, converged = eb$convergence)

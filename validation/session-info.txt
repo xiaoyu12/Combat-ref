@@ -1,0 +1,12 @@
+R version 4.6.1 (2026-06-24)
+Platform: aarch64-apple-darwin25.4.0
+Running under: macOS Tahoe 26.6
+
+BLAS: OpenBLAS 0.3.34
+LAPACK: 3.12.1
+Locale: C.UTF-8
+Time zone: Europe/Rome
+
+edgeR: 4.10.1
+S7: 0.2.2
+pkgdown: 2.2.1

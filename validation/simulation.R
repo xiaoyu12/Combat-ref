@@ -35,9 +35,8 @@ simulate_counts <- function(seed, mean_pattern, dispersion_ratio, replicates,
     reference = if (weak_reference) "A" else "A")
 }
 
-run_ql <- function(x, mean_shrinkage, dispersion_model) {
+run_ql <- function(x) {
   fit <- combat_ref_ql(x$counts, x$batch, x$group, reference = x$reference,
-    mean_shrinkage = mean_shrinkage, dispersion_model = dispersion_model,
     verbosity = "quiet")
   contrast <- fit@diagnostics$batch_contrasts
   dispersion <- fit@diagnostics$dispersion
@@ -103,10 +102,6 @@ de_metrics <- function(x) {
     de_power = mean(selected[truth]))
 }
 
-configurations <- data.frame(method = c("shared_none", "shared_ql_eb",
-  "batch_scaled_none", "batch_scaled_ql_eb"),
-  mean = c("none", "ql_eb", "none", "ql_eb"),
-  dispersion = c("shared", "shared", "batch_scaled", "batch_scaled"))
 external <- if (mode == "full") load_external() else NULL
 grid <- if (mode == "fast") data.frame(
   seed = c(104729L, 130363L), mean_pattern = c("none", "widespread"),
@@ -127,15 +122,13 @@ k <- 0L
 for (i in seq_len(nrow(grid))) {
   x <- do.call(simulate_counts, as.list(grid[i, ]))
   de <- de_metrics(x)
-  methods <- c(configurations$method, "raw_edgeR_design",
+  methods <- c("ComBat-refQL", "raw_edgeR_design",
     if (mode == "full") c("ComBat-ref", "ComBat-seq"))
   for (method in methods) {
     k <- k + 1L
     started <- proc.time()[["elapsed"]]
-    if (method %in% configurations$method) {
-      j <- match(method, configurations$method)
-      result <- tryCatch(run_ql(x, configurations$mean[j],
-        configurations$dispersion[j]), error = identity)
+    if (method == "ComBat-refQL") {
+      result <- tryCatch(run_ql(x), error = identity)
     } else if (method == "raw_edgeR_design") {
       result <- list(counts = x$counts, delta = rep(NA_real_, length(x$delta)),
         d = NA_real_, invariant = TRUE)
@@ -177,4 +170,4 @@ utils::write.table(results, path, sep = "\t", quote = FALSE, row.names = FALSE,
   na = "NA")
 cat(sprintf("%s: %s scenario-method rows; %s errors; reference invariant: %s\n",
   path, nrow(results), sum(results$status != "ok"),
-  all(results$reference_invariant[results$status == "ok"])))
+  all(results$reference_invariant[results$status == "ok"], na.rm = TRUE)))

@@ -21,6 +21,24 @@ test_that("batch contrasts do not depend on factor level order", {
   expect_equal(da$ql_variance, db$ql_variance, tolerance = 1e-8)
 })
 
+test_that("batch contrasts are invariant to equivalent full-rank designs", {
+  set.seed(101)
+  batch <- factor(rep(c("A", "B"), each = 6))
+  group <- factor(rep(rep(c("C", "T"), each = 3), 2))
+  counts <- matrix(stats::rnbinom(120 * 12, mu = 40, size = 8), 120)
+  dge <- edgeR::normLibSizes(edgeR::DGEList(counts), method = "TMMwsp")
+  designs <- list(stats::model.matrix(~ batch + group),
+    stats::model.matrix(~ 0 + batch + group))
+  estimates <- lapply(designs, function(design) {
+    fitted <- combatrefql:::fit_ql_model(dge, design)
+    combatrefql:::contrast_covariance(fitted, fitted$dispersion, "B", "A")
+  })
+  expect_equal(estimates[[1]]$raw_delta, estimates[[2]]$raw_delta,
+    tolerance = 1e-8)
+  expect_equal(estimates[[1]]$ql_variance, estimates[[2]]$ql_variance,
+    tolerance = 1e-8)
+})
+
 test_that("QL contrast covariance agrees with the edgeR one-df test", {
   set.seed(42)
   genes <- 200L
@@ -47,7 +65,7 @@ test_that("QL contrast covariance agrees with the edgeR one-df test", {
 test_that("batch dispersion is reference-centred and information weighted", {
   z <- combatrefql_test_fixtures()[[1]]
   fit <- combat_ref_ql(z$counts, z$batch, z$group, reference = "1",
-    mean_shrinkage = "none", verbosity = "quiet")
+    verbosity = "quiet")
   dispersion <- fit@diagnostics$dispersion
   by_batch <- dispersion[!duplicated(dispersion$batch), ]
 
@@ -77,6 +95,10 @@ test_that("effective information has the required residual total and saturation"
   expect_equal(saturated$precision, matrix(0, 1, 2,
     dimnames = list(NULL, c("A", "B"))))
   expect_lt(1 / trigamma(0.5), 1 / trigamma(2))
+  residual_information <- c(0, 0.1, 0.5, 1, 2, 5)
+  precision <- ifelse(residual_information == 0, 0,
+    1 / trigamma(residual_information / 2))
+  expect_true(all(diff(precision) > 0))
 })
 
 test_that("zero batch information has explicit source and reference behavior", {
@@ -95,7 +117,7 @@ test_that("zero batch information has explicit source and reference behavior", {
   source_zero <- information
   source_zero$precision[, "2"] <- 0
   estimated <- combatrefql:::estimate_batch_dispersion(dge, design,
-    prepared$batch, "1", preliminary, source_zero, "batch_scaled")
+    prepared$batch, "1", preliminary, source_zero)
   expect_identical(unname(estimated$shifts["2"]), 0)
   expect_true(all(estimated$diagnostics$status[estimated$diagnostics$batch == "2"] ==
     "not_estimable"))
@@ -103,19 +125,17 @@ test_that("zero batch information has explicit source and reference behavior", {
   reference_zero <- information
   reference_zero$precision[, "1"] <- 0
   expect_error(combatrefql:::estimate_batch_dispersion(dge, design,
-    prepared$batch, "1", preliminary, reference_zero, "batch_scaled"),
+    prepared$batch, "1", preliminary, reference_zero),
     class = "combatrefql_statistical_error")
 })
 
-test_that("mid-P zero policy and distinct dispersions are explicit", {
+test_that("mid-P zero rule and distinct dispersions are explicit", {
   y <- matrix(0, 1, 1)
   mu <- matrix(4, 1, 1)
   phi <- matrix(0.2, 1, 1)
   expected <- 0.5 * stats::dnbinom(0, mu = 4, size = 5)
-  mapped <- combatrefql:::midp_transport(y, mu, mu, phi, phi, "model")
+  mapped <- combatrefql:::midp_transport(y, mu, mu, phi, phi)
   expect_equal(mapped$probability, matrix(expected, 1, 1))
-  expect_identical(combatrefql:::midp_transport(y, mu, mu, phi, phi,
-    "preserve")$counts, matrix(0, 1, 1))
 
   support <- matrix(0:100, 1)
   equal <- combatrefql:::midp_transport(support, matrix(20, 1, 101),
@@ -126,22 +146,14 @@ test_that("mid-P zero policy and distinct dispersions are explicit", {
   expect_false(identical(changed$counts, equal$counts))
 })
 
-test_that("all formal ablations run and label their diagnostics", {
+test_that("the public API exposes one integrated statistical method", {
   z <- combatrefql_test_fixtures()[[1]]
-  configurations <- expand.grid(mean = c("none", "ql_eb"),
-    dispersion = c("shared", "batch_scaled"), stringsAsFactors = FALSE)
-  fits <- Map(function(mean, dispersion) combat_ref_ql(z$counts, z$batch,
-    z$group, reference = "1", mean_shrinkage = mean,
-    dispersion_model = dispersion, verbosity = "quiet"),
-    configurations$mean, configurations$dispersion)
-
-  expect_equal(unname(vapply(fits, function(x) x@specification$mean_shrinkage,
-    character(1))), configurations$mean)
-  expect_equal(unname(vapply(fits, function(x) x@specification$dispersion_model,
-    character(1))), configurations$dispersion)
-  expect_true(all(vapply(fits, function(x)
-    identical(x@counts[, z$batch == 1], z$counts[, z$batch == 1]), logical(1))))
-  expect_identical(fits[[4]]@counts,
-    combat_ref_ql(z$counts, z$batch, z$group, reference = "1",
-      verbosity = "quiet")@counts)
+  fit <- combat_ref_ql(z$counts, z$batch, z$group, reference = "1",
+    verbosity = "quiet")
+  expect_identical(names(formals(combat_ref_ql)), c("counts", "batch", "group",
+    "covariates", "reference", "normalization", "fractional_counts",
+    "chunk_size", "verbosity"))
+  expect_identical(fit@specification$method,
+    "ComBat-refQL integrated reference-batch adjustment")
+  expect_identical(fit@counts[, z$batch == 1], z$counts[, z$batch == 1])
 })

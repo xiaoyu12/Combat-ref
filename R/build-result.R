@@ -1,8 +1,7 @@
 build_combatrefql_result <- function(prepared, dge, design, selected, fit,
                                      shrinkage, dispersion, transported, keep,
                                      timings, call, normalization,
-                                     mean_shrinkage, dispersion_model,
-                                     zero_policy, chunk_size) {
+                                     chunk_size) {
   gene_status <- make_gene_status(prepared$counts, prepared$batch, keep,
     transported$mapping_valid)
   mapping_warnings <- if (nrow(transported$failures)) data.frame(
@@ -11,12 +10,9 @@ build_combatrefql_result <- function(prepared, dge, design, selected, fit,
       sum(gene_status$status == "failed")), stringsAsFactors = FALSE) else
     empty_warnings()
   specification <- data.frame(
-    method = sprintf("%s reference contrasts with %s NB mid-P transport",
-      mean_shrinkage, dispersion_model),
-    mean_shrinkage = mean_shrinkage, dispersion_model = dispersion_model,
-    zero_policy = zero_policy,
+    method = "ComBat-refQL integrated reference-batch adjustment",
     normalization = normalization, transport = "negative-binomial mid-P",
-    preserve_zeros = zero_policy == "preserve", reference_batch = selected$reference,
+    zero_handling = "model-consistent mid-P", reference_batch = selected$reference,
     reference_selection = if (is.null(prepared$reference)) "automatic" else "explicit",
     chunk_size = chunk_size, stringsAsFactors = FALSE)
   samples <- data.frame(

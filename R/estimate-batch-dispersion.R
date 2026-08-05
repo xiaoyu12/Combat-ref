@@ -1,18 +1,8 @@
 estimate_batch_dispersion <- function(dge, design, batch, reference,
-                                      preliminary, information,
-                                      model = c("batch_scaled", "shared")) {
-  model <- match.arg(model)
+                                      preliminary, information) {
   genes <- rownames(dge$counts)
   batches <- levels(batch)
-  if (model == "shared") {
-    baseline <- rep(as.numeric(preliminary$dispersion), length(genes))
-    names(baseline) <- genes
-    shifts <- stats::setNames(rep(0, length(batches)), batches)
-    status <- stats::setNames(rep("shared", length(batches)), batches)
-    convergence <- stats::setNames(rep(TRUE, length(batches)), batches)
-    iterations <- stats::setNames(rep(0L, length(batches)), batches)
-  } else {
-    estimated <- tryCatch(edgeR::estimateDisp(dge, design = design,
+  estimated <- tryCatch(edgeR::estimateDisp(dge, design = design,
       robust = TRUE, trend.method = "locfit"), error = function(error)
         abort_combatrefql("combatrefql_statistical_error",
           sprintf("Batch-dispersion baseline estimation failed: %s",
@@ -28,7 +18,7 @@ estimate_batch_dispersion <- function(dge, design, batch, reference,
     if (!is.finite(total_precision[reference]) || total_precision[reference] <= 0)
       abort_combatrefql("combatrefql_statistical_error",
         "The reference batch has zero effective dispersion information.",
-        "*" = "Choose a replicated reference or use dispersion_model = 'shared'.",
+        "*" = "Choose a reference batch with replicated residual information.",
         stage = "dispersion", reference_batch = reference)
 
     raw <- stats::setNames(numeric(length(batches)), batches)
@@ -61,9 +51,8 @@ estimate_batch_dispersion <- function(dge, design, batch, reference,
     shifts[reference] <- 0
     shifts[status == "not_estimable"] <- 0
     max_multiplier <- max(exp(shifts))
-    baseline <- pmax(pmin(baseline * exp(raw[reference]),
-      4 / max_multiplier), 1e-8 / min(exp(shifts)))
-  }
+  baseline <- pmax(pmin(baseline * exp(raw[reference]),
+    4 / max_multiplier), 1e-8 / min(exp(shifts)))
 
   multipliers <- exp(shifts)
   phi_reference <- baseline

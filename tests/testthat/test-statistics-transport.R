@@ -16,6 +16,10 @@ test_that("mid-P transport is deterministic, model consistent, and double safe",
   a <- combatrefql:::midp_transport(y,old,new,0.2,0.2)$counts
   b <- combatrefql:::midp_transport(y,old,new,0.2,0.2)$counts
   expect_identical(a,b); expect_true(is.double(a)); expect_gt(a[5],2^31)
+  extremes <- combatrefql:::midp_transport(matrix(c(0, 1, 1e6), 1),
+    matrix(c(1e-8, 1e8, 1e6), 1), matrix(c(1e-7, 1e7, 2e6), 1),
+    matrix(c(1e-8, 2, 0.01), 1), matrix(c(1e-8, 1, 0.02), 1))$counts
+  expect_true(all(is.finite(extremes) & extremes >= 0 & extremes == round(extremes)))
 })
 
 test_that("chunking is equivalent and unsupported genes remain unchanged", {
@@ -26,6 +30,16 @@ test_that("chunking is equivalent and unsupported genes remain unchanged", {
   unsupported <- !a@gene_status$mapping_valid
   expect_equal(a@counts[unsupported,],z$counts[unsupported,])
   expect_identical(a@counts[, z$batch == 1], z$counts[, z$batch == 1])
+  expect_true(all(is.finite(a@counts) & a@counts >= 0 & a@counts == round(a@counts)))
+})
+
+test_that("genes without support in one batch are identified", {
+  batch <- factor(rep(c("A", "B"), each = 3))
+  counts <- matrix(1:60, 10, 6)
+  counts[1, batch == "B"] <- 0
+  keep <- combatrefql:::assess_support(counts, batch)
+  expect_false(keep[1])
+  expect_true(all(keep[-1]))
 })
 
 test_that("mapping failures retain complete original rows and drive outcomes", {
@@ -41,11 +55,10 @@ test_that("mapping failures retain complete original rows and drive outcomes", {
     fitted.values = matrix(c(10, 12, 20, 22, 5, 6, Inf, 8), nrow = 2,
       byrow = TRUE)
   )
-  mapped <- combatrefql:::transport_counts(counts, c(TRUE, TRUE), batch, "A",
-    design, fit,
+  mapped <- combatrefql:::transport_counts(counts, c(TRUE, TRUE), batch, "A", fit,
     shrinkage = list(posterior = list(B = c(0, 0))),
     dispersion = list(dispersion = matrix(0.2, 2, 4),
-      reference = c(0.2, 0.2)), zero_policy = "model", chunk_size = 2L)
+      reference = c(0.2, 0.2)), chunk_size = 2L)
   expect_true(mapped$mapping_valid[1])
   expect_false(mapped$mapping_valid[2])
   expect_identical(mapped$counts[2, ], counts[2, ])

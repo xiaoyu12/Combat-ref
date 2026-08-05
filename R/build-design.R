@@ -33,8 +33,14 @@ reference_design <- function(design, batch, reference, columns) {
 
 batch_contrast <- function(design, source, reference) {
   contrast <- stats::setNames(numeric(ncol(design)), colnames(design))
-  contrast[paste0("batch", source)] <- 1
-  contrast[paste0("batch", reference)] <- -1
+  source_column <- match(paste0("batch", source), names(contrast))
+  reference_column <- match(paste0("batch", reference), names(contrast))
+  if (!is.na(source_column)) contrast[source_column] <- 1
+  if (!is.na(reference_column)) contrast[reference_column] <- -1
+  if (is.na(source_column) && is.na(reference_column))
+    abort_combatrefql("combatrefql_internal_error",
+      "The fitted design does not identify the requested batch contrast.",
+      stage = "contrast")
   contrast
 }
 

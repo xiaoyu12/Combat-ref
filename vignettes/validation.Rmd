@@ -1,0 +1,49 @@
+---
+title: "Validation"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Validation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+ComBat-refQL uses three complementary validation layers.
+
+## Mathematical tests
+
+Offline deterministic tests verify empirical-Bayes limits, exact contrast
+parameterization, QL covariance against a one-degree-of-freedom edgeR test,
+reference-centred dispersion identities, residual-information behavior,
+model-consistent zero transport, numerical rollback, chunk equivalence, and
+exact preservation of reference counts.
+
+## Simulation with known truth
+
+The factorial simulation independently varies mean batch effects, dispersion
+multipliers, biological effects, replication, balance, overlap, library depth,
+expression, gene dispersion, correlated modules, and outliers. It records
+batch-effect bias and RMSE, dispersion-ratio recovery, biological-effect
+preservation, transformation magnitude, count alignment, reference invariance,
+runtime, and raw-count edgeR inference metrics.
+
+The fast subset runs during development. The full run also evaluates pinned
+ComBat-ref and ComBat-seq implementations. Results are tidy TSV files under
+`validation/`.
+
+## GFRN and NASA GeneLab data
+
+The real-data workflows reproduce the count subsets used by the ComBat-ref
+repository at pinned commit
+`f0c6d3f313e9f1f29de2c8c8f12b98113443be55`. The GFRN analysis uses GFP
+controls and HER2, EGFR, and KRAS perturbations across three batches. The NASA
+analysis uses the public GeneLab liver count collection after excluding the
+GLDS-168/RR1 stratum, matching the upstream analysis.
+
+Both workflows compare unadjusted counts, ComBat-refQL, pinned ComBat-ref, and
+pinned ComBat-seq. They report conditional batch association in leading PCs,
+gene-level mean alignment, within-batch residual-dispersion alignment, and
+reference invariance. These are empirical behavior metrics; simulations supply
+truth-based recovery metrics.
+
+See `validation/README.md` for commands and `validation/VALIDATION_REPORT.md`
+for the recorded results.

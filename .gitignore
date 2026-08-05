@@ -7,3 +7,5 @@
 *.mat
 *_corrected.mat
 site/
+.DS_Store
+validation/.cache/

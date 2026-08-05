@@ -1,7 +1,5 @@
 midp_transport <- function(counts, observed_mu, reference_mu,
-                           source_dispersion, target_dispersion,
-                           zero_policy = c("model", "preserve")) {
-  zero_policy <- match.arg(zero_policy)
+                           source_dispersion, target_dispersion) {
   valid_means <- is.finite(observed_mu) & observed_mu > 0 &
     is.finite(reference_mu) & reference_mu > 0
   if (!all(valid_means)) {
@@ -20,12 +18,10 @@ midp_transport <- function(counts, observed_mu, reference_mu,
   probability <- stats::pnbinom(counts - 1, mu = observed_mu,
     size = source_size) + 0.5 * stats::dnbinom(counts, mu = observed_mu,
       size = source_size)
-  if (zero_policy == "preserve") probability[counts == 0] <- 0
   clipped <- probability <= .Machine$double.xmin |
     probability >= 1 - .Machine$double.eps
   probability <- pmin(pmax(probability, .Machine$double.xmin), 1 - .Machine$double.eps)
   mapped <- stats::qnbinom(probability, mu = reference_mu, size = target_size)
-  if (zero_policy == "preserve") mapped[counts == 0] <- 0
   storage.mode(mapped) <- "double"
   valid <- rowSums(is.na(mapped) | !is.finite(mapped) | mapped < 0 |
     abs(mapped - round(mapped)) > sqrt(.Machine$double.eps)) == 0
@@ -35,8 +31,8 @@ midp_transport <- function(counts, observed_mu, reference_mu,
     positive_to_zero = sum(counts > 0 & mapped == 0, na.rm = TRUE))
 }
 
-transport_counts <- function(counts, keep, batch, reference, design, fit,
-                             shrinkage, dispersion, zero_policy, chunk_size,
+transport_counts <- function(counts, keep, batch, reference, fit,
+                             shrinkage, dispersion, chunk_size,
                              progress = function(...) NULL) {
   adjusted <- counts
   mapping <- list()
@@ -77,7 +73,7 @@ transport_counts <- function(counts, keep, batch, reference, design, fit,
           observed_mu[valid_rows, , drop = FALSE],
           reference_mu[valid_rows, , drop = FALSE],
           source_phi[valid_rows, , drop = FALSE],
-          target_phi[valid_rows, , drop = FALSE], zero_policy),
+          target_phi[valid_rows, , drop = FALSE]),
         combatrefql_mapping_error = function(error) error
       )
       if (inherits(mapped, "combatrefql_mapping_error")) {
